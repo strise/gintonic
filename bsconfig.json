@@ -1,0 +1,72 @@
+{
+  "name": "graphql-transformer",
+  "version": "0.1.0",
+  "sources": [
+    {
+      "dir": "__tests__",
+      "type": "dev"
+    },
+    {
+      "dir": "src",
+      "subdirs": true,
+      "generators": [
+        {
+          "name": "menhir",
+          "edge": [
+            "trans/trans_parser.ml",
+            "trans/trans_parser.mli",
+            ":",
+            "trans/trans_parser.mly"
+          ]
+        },
+        {
+          "name": "ocamllex",
+          "edge": [
+            "trans/trans_lexer.ml",
+            ":",
+            "trans/trans_lexer.mll"
+          ]
+        },
+        {
+          "name": "menhir",
+          "edge": [
+            "schema/schema_parser.ml",
+            "schema/schema_parser.mli",
+            ":",
+            "schema/schema_parser.mly"
+          ]
+        },
+        {
+          "name": "ocamllex",
+          "edge": [
+            "schema/schema_lexer.ml",
+            ":",
+            "schema/schema_lexer.mll"
+          ]
+        }
+      ]
+    }
+  ],
+  "package-specs": {
+    "module": "commonjs",
+    "in-source": true
+  },
+  "suffix": ".bs.js",
+  "bs-dev-dependencies": [
+    "@glennsl/bs-jest"
+  ],
+  "warnings": {
+    "error": "+101"
+  },
+  "refmt": 3,
+  "generators": [
+    {
+      "name": "menhir",
+      "command": "menhir $in"
+    },
+    {
+      "name": "ocamllex",
+      "command": "ocamllex $in"
+    }
+  ]
+}

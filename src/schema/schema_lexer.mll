@@ -1,39 +1,66 @@
 {
-    open Parser
+    open Schema_parser
     open Lexing
     exception LexError of (string * position)
 }
 
-let whitespace =  [' ' '\t' '\n']
+let whitespace = [' ' '\t']
 
 let name = ['_' 'a'-'z' 'A'-'Z'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']* 
 
-let int = '-'? ['0'-'9'] ['0'-'9']*
-let digit = ['0'-'9']
-let frac = '.' digit*
-let exp = ['e' 'E'] ['-' '+']? digit+
-let float = '-'? digit* frac? exp?
+let lineterm = "\r\n" | ['\n' '\r']
 
-rule read =
+let comma = ','
+
+rule read = 
     parse
-    | '#'           { read_comment "" lexbuf }
-    | "true"        { BOOL true }
-    | "false"       { BOOL false }
-    | "null"        { NULL }
-    | int           { INT (Lexing.lexeme lexbuf) }
-    | float         { FLOAT (Lexing.lexeme lexbuf) }
-    | '('           { L_PAREN }
-    | ')'           { R_PAREN }
-    | '{'           { L_BRACKET }
-    | '}'           { R_BRACKET }
-    | '['           { L_SQ_BRACKET }
-    | ']'           { R_SQ_BRACKET }
+    | whitespace    { read lexbuf }
+    | lineterm      { read lexbuf }
+    | comma         { read lexbuf }
+
     | ':'           { COLON }
-    | ','           { read lexbuf }
+    | '|'           { PIPE }
+    | '@'           { AT }
+    | '='           { EQUAL }
+    | '&'           { AMPERSAND }
+    | '!'           { EXCLAMATION }
+
+    | "on"           { EQUAL }
+    | "schema"      { SCHEMA }
+    | "type"        { TYPE }
+    | "enum"        { ENUM }
+    | "interface"   { INTERFACE }
+    | "implements"  { IMPLEMENTS }
+    | "directive"   { DIRECTIVE }
+    | "scalar"      { SCALAR }
+    | "input"       { INPUT }
+    | "union"       { UNION }
+    | "query"       { OP_QUERY }
+    | "mutation"    { OP_MUTATION }
+    | "subscription"    { OP_SUBSCRIPTION }
+    | "QUERY"               { EDIR_QUERY }
+    | "MUTATION"               { EDIR_MUTATION }
+    | "SUBSCRIPTION"               { EDIR_SUBSCRIPTION }
+    | "FIELD"               { EDIR_FIELD }
+    | "FRAGMENT_DEFINITION"               { EDIR_FRAGMENT_DEFINITION }
+    | "FRAGMENT_SPREAD"               { EDIR_FRAGMENT_SPREAD }
+    | "INLINE_FRAGMENT"               { EDIR_INLINE_FRAGMENT }
+
+    | "SCHEMA"               { TSDIR_SCHEMA }
+    | "SCALAR"               { TSDIR_SCALAR }
+    | "OBJECT"               { TSDIR_OBJECT }
+    | "FIELD_DEFINITION"               { TSDIR_FIELD_DEFINITION }
+    | "ARGUMENT_DEFINITION"               { TSDIR_ARGUMENT_DEFINITION }
+    | "INTERFACE"               { TSDIR_INTERFACE }
+    | "UNION"               { TSDIR_UNION }
+    | "ENUM"               { TSDIR_ENUM }
+    | "ENUM_VALUE"               { TSDIR_ENUM_VALUE }
+    | "INPUT_OBJECT"               { TSDIR_INPUT_OBJECT }
+    | "INPUT_FIELD_DEFINITION"               { TSDIR_INPUT_FIELD_DEFINITION }
+
     | "\"\"\""      { read_multiline_string "" lexbuf }
     | '"'           { read_string "" lexbuf }
-    | whitespace    { read lexbuf }
-    | _             { raise (LexError ("Unexpected char: " ^ Lexing.lexeme lexbuf , Lexing.lexeme_start_p lexbuf)) }
+    | '#'           { read_comment "" lexbuf }
     | name          { NAME (Lexing.lexeme lexbuf) }
     | eof           { EOF }
 and read_string s = 
@@ -66,6 +93,6 @@ and read_multiline_string s =
     | eof           { raise (LexError ("String not terminated", Lexing.lexeme_start_p lexbuf)) }
 and read_comment s =
     parse
-    | '\n'          { read lexbuf }
-    | eof           { read lexbuf }
-    | _             { read_comment (s ^ Lexing.lexeme lexbuf) lexbuf }
+    | lineterm          { read lexbuf }
+    | eof               { read lexbuf }
+    | _                 { read_comment (s ^ Lexing.lexeme lexbuf) lexbuf }

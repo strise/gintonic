@@ -47,8 +47,8 @@ let () =
       testEmptyProgram "#asdasd";
       testSingleToken "#asdasd
       null" NULL;
-      testSingleToken "true" (BOOL true);
-      testSingleToken "false" (BOOL false);
+      testSingleToken "true" TRUE;
+      testSingleToken "false" FALSE;
       testSingleToken "null" NULL;
       testSingleToken "1234" (INT "1234");
       testSingleToken "-1234" (INT "-1234");
@@ -74,6 +74,7 @@ let () =
       testLexError "\"" (LexError ("String not terminated", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
       testLexError "\"\\q" (LexError ("Illegal string character: \\", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
       testSingleToken "foobar" (NAME "foobar");
+      testSingleToken "truename" (NAME "truename");
       testSingleToken "foobar1234" (NAME "foobar1234");
       testSingleToken "a123" (NAME "a123");
       testProgram 

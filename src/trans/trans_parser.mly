@@ -7,7 +7,8 @@
 %token R_BRACKET
 %token COLON
 %token EOF
-%token <bool> BOOL
+%token TRUE
+%token FALSE
 %token <string> NAME
 %token <string> STRING
 %token <string> INT
@@ -37,11 +38,20 @@ transformation:
     sel = type_selector
     { { tpe = sel; fields = []; doc = ds } }
 
+name:
+  | n = NAME
+    { n }
+  | NULL
+    { "null" }
+  | TRUE
+    { "true" }
+  | FALSE
+    { "false" }
 
 type_selector:
-  | n = NAME    
+  | n = name    
     { { name = n; alias = None } }
-  | alias = NAME COLON n = NAME
+  | alias = name COLON n = name
     { { name = n; alias = Some alias } }
 
 fields:
@@ -58,9 +68,9 @@ field:
     { { field = selector; args= ars; doc = ds } }
 
 field_selector:
- | n = NAME
+ | n = name
    { { name = n; alias = None } }
- | a = NAME COLON n = NAME
+ | a = name COLON n = name
    { { name = n; alias = Some a } }
 
 args:
@@ -78,13 +88,14 @@ arg_list:
     { a::ars }
 
 arg: ds = docs
-     n = NAME 
+     n = name 
      COLON 
      v = value 
      { { name = n; value = v; doc = ds } }
 
 value: 
-  | b = BOOL { Bool b }
+  | TRUE        { Bool true }
+  | FALSE       { Bool false }
   | s = STRING { String s }
   | f = FLOAT { Float f }
   | i = INT { Int (Int32.of_string i) }

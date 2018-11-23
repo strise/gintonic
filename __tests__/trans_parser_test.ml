@@ -48,27 +48,27 @@ let () =
         "
         Lol {
             \"\"\"desc\"\"\"
-            field
+            true
         }
         "
-        (p #+ (t (ts "Lol") $+ f_doc (fs "field")  "desc"));
+        (p #+ (t (ts "Lol") $+ f_doc (fs "true")  "desc"));
       testProgram 
         "
         Lol {
-            field(arg: 123)
+            null(arg: 123)
         }
         "
-        (p #+ (t (ts "Lol") $+ (f (fs "field") %+ a "arg" (i 123)) ));
+        (p #+ (t (ts "Lol") $+ (f (fs "null") %+ a "arg" (i 123)) ));
       testProgram 
         "
         Lol {
 
             field(
                 \"\"\"desc\"\"\"
-                arg: 123)
+                false: 123)
         }
         "
-        (p #+ (t (ts "Lol") $+ (f (fs "field") %+ a_doc "arg" (i 123) "desc") ));
+        (p #+ (t (ts "Lol") $+ (f (fs "field") %+ a_doc "false" (i 123) "desc") ));
 
       testProgram 
         "

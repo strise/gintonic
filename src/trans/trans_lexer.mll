@@ -17,8 +17,8 @@ let float = '-'? digit* frac? exp?
 rule read =
     parse
     | '#'           { read_comment "" lexbuf }
-    | "true"        { BOOL true }
-    | "false"       { BOOL false }
+    | "true"        { TRUE }
+    | "false"       { FALSE }
     | "null"        { NULL }
     | int           { INT (Lexing.lexeme lexbuf) }
     | float         { FLOAT (Lexing.lexeme lexbuf) }

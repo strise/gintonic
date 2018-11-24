@@ -13,35 +13,35 @@
         {
           "name": "menhir",
           "edge": [
-            "trans/trans_parser.ml",
-            "trans/trans_parser.mli",
+            "trans_parser.ml",
+            "trans_parser.mli",
             ":",
-            "trans/trans_parser.mly"
+            "trans_parser.mly"
           ]
         },
         {
           "name": "ocamllex",
           "edge": [
-            "trans/trans_lexer.ml",
+            "trans_lexer.ml",
             ":",
-            "trans/trans_lexer.mll"
+            "trans_lexer.mll"
           ]
         },
         {
           "name": "menhir",
           "edge": [
-            "schema/schema_parser.ml",
-            "schema/schema_parser.mli",
+            "schema_parser.ml",
+            "schema_parser.mli",
             ":",
-            "schema/schema_parser.mly"
+            "schema_parser.mly"
           ]
         },
         {
           "name": "ocamllex",
           "edge": [
-            "schema/schema_lexer.ml",
+            "schema_lexer.ml",
             ":",
-            "schema/schema_lexer.mll"
+            "schema_lexer.mll"
           ]
         }
       ]

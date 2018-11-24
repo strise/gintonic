@@ -54,25 +54,23 @@ let () =
       testSingleToken "-1234" (INT "-1234");
       testSingleToken "1234.0" (FLOAT "1234.0");
       testSingleToken "-1234.0" (FLOAT "-1234.0");
-      testSingleToken "1234." (FLOAT "1234.");
-      testSingleToken "-1234." (FLOAT "-1234.");
       testSingleToken "1234e12" (FLOAT "1234e12");
       testSingleToken "-1234e12" (FLOAT "-1234e12");
       testSingleToken "\"foobar\"" (STRING "foobar");
-      testSingleToken "\"fo\\\"obar\"" (STRING "fo\"obar");
-      testSingleToken "\"fo\\nobar\"" (STRING "fo\nobar");
-      testSingleToken "\"fo\\bobar\"" (STRING "fo\bobar");
-      testSingleToken "\"fo\\tobar\"" (STRING "fo\tobar");
-      testSingleToken "\"fo\\robar\"" (STRING "fo\robar");
-      testSingleToken "\"fo\\fobar\"" (STRING "fo\012obar");
-      testSingleToken "\"\"\"foobar\"baz\"\"\"" (STRING "foobar\"baz");
+      testSingleToken "\"fo\\\"obar\"" (STRING "fo\\\"obar");
+      testSingleToken "\"fo\\nobar\"" (STRING "fo\\nobar");
+      testSingleToken "\"fo\\bobar\"" (STRING "fo\\bobar");
+      testSingleToken "\"fo\\tobar\"" (STRING "fo\\tobar");
+      testSingleToken "\"fo\\robar\"" (STRING "fo\\robar");
+      testSingleToken "\"fo\\fobar\"" (STRING "fo\\fobar");
+      testSingleToken "\"\"\"foobar\"baz\"\"\"" (BLOCK_STRING "foobar\"baz");
       testSingleToken "\"\"\"
       foobar
-      baz\"\"\"" (STRING "
+      baz\"\"\"" (BLOCK_STRING "
       foobar
       baz");
       testLexError "\"" (LexError ("String not terminated", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
-      testLexError "\"\\q" (LexError ("Illegal string character: \\", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
+      testLexError "\"\\q" (LexError ("Illegal character escape", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
       testSingleToken "foobar" (NAME "foobar");
       testSingleToken "truename" (NAME "truename");
       testSingleToken "foobar1234" (NAME "foobar1234");

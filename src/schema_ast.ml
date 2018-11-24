@@ -6,7 +6,13 @@ type named_type = name
 
 type enum_value = name
 
-type description = string
+
+type string_value =
+  | StringValue of string
+  | BlockStringValue of string
+
+
+type description = string_value
 
 type object_field = {
   name: name;
@@ -15,7 +21,7 @@ type object_field = {
 and  value = 
   | IntValue of int32
   | FloatValue of string
-  | StringValue of string
+  | StringValue of string_value
   | BooleanValue of bool
   | NullValue
   | EnumValue of name
@@ -58,28 +64,6 @@ type type_system_directive_location =
 type directive_location = 
   | ExecutableDirectiveLocation of executable_directive_location
   | TypeSystemDirectiveLocation of type_system_directive_location
-
-
-let directiveLocationFromString (s: string): directive_location option = match s with
-  | "QUERY" -> Some(ExecutableDirectiveLocation Query)
-  | "MUTATION" -> Some(ExecutableDirectiveLocation Mutation)
-  | "SUBSCRIPTION" -> Some(ExecutableDirectiveLocation Subscription)
-  | "FIELD" -> Some(ExecutableDirectiveLocation Field)
-  | "FRAGMENT_DEFINITION" -> Some(ExecutableDirectiveLocation FragmentDefinition)
-  | "FRAGMENT_SPREAD" -> Some(ExecutableDirectiveLocation FragmentSpread)
-  | "INLINE_FRAGMENT" -> Some(ExecutableDirectiveLocation Mutation)
-  | "SCHEMA" -> Some (TypeSystemDirectiveLocation Schema)
-  | "SCALAR" -> Some (TypeSystemDirectiveLocation Scalar)
-  | "OBJECT" -> Some (TypeSystemDirectiveLocation Object)
-  | "FIELD_DEFINITION" -> Some (TypeSystemDirectiveLocation FieldDefinition)
-  | "ARGUMENT_DEFINITION" -> Some (TypeSystemDirectiveLocation ArgumentDefinition)
-  | "INTERFACE" -> Some (TypeSystemDirectiveLocation Interface)
-  | "UNION" -> Some (TypeSystemDirectiveLocation Union)
-  | "ENUM" -> Some (TypeSystemDirectiveLocation Enum)
-  | "ENUM_VALUE" -> Some (TypeSystemDirectiveLocation EnumValue)
-  | "INPUT_OBJECT" -> Some (TypeSystemDirectiveLocation InputObject)
-  | "INPUT_FIELD_DEFINITION" -> Some (TypeSystemDirectiveLocation InputFieldDefinition)
-  | _ -> None
 
 type scalar_type_definition = {
   description: description option;
@@ -175,13 +159,6 @@ type operation_type =
   | Query
   | Mutation
   | Subscription
-
-
-let operationTypeFromString(s: string): operation_type option = match s with
-  | "query" -> Some Query
-  | "mutation" -> Some Mutation
-  | "subscription" -> Some Subscription
-  | _ -> None
 
 
 

@@ -5,6 +5,9 @@
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
     "watch": "bsb -make-world -w",
+    "build-system:build": "docker build -t ${IMAGE:-build-system:latest} build_system",
+    "build-system:push": "docker push  ${IMAGE:-build-system:latest}",
+    "build-system": "npm run build-system:build && npm run build-system:push",
     "test": "jest"
   },
   "keywords": [

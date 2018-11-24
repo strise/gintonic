@@ -51,6 +51,7 @@
 %token FALSE
 %token <string> NAME
 %token <string> STRING
+%token <string> BLOCK_STRING
 %token <string> INT
 %token <string> FLOAT
 %token NULL
@@ -67,7 +68,7 @@
 %start <Schema_ast.document> document
 %%
 
-document: ds = type_system_definition* EOF    { { definitions = ds } }
+document: ds = type_system_definition+ EOF    { { definitions = ds } }
 
 type_system_definition:
   | d = schema_definition     { SchemaDefinition d }
@@ -76,11 +77,11 @@ type_system_definition:
 
 schema_definition: 
     SCHEMA 
-    ds = directives
+    ds = directives?
     L_BRACKET
-    rotds = root_opreation_type_definition*
+    rotds = root_opreation_type_definition+
     R_BRACKET
-    { { directives = ds; operations = rotds } }
+    { { directives = flat ds; operations = rotds } }
 
 root_opreation_type_definition:
   op = operation_type
@@ -100,7 +101,7 @@ named_type:
 
 
 directives: 
-  ds = directive*
+  ds = directive+
   { ds }
 
 directive: 
@@ -111,7 +112,7 @@ directive:
 
 arguments: 
   L_PAREN 
-  args = argument* 
+  args = argument+ 
   R_PAREN
   { args }
 
@@ -121,10 +122,17 @@ argument:
   v = value
   {{ name=n; value =v}}
 
+string_value:
+  | s = STRING
+    { StringValue s }
+  | b = BLOCK_STRING
+    { BlockStringValue b }
+
+
 value:
   | i = INT           {IntValue (Int32.of_string i)}
   | f = FLOAT         {FloatValue f}
-  | s = STRING        {StringValue s}
+  | s = string_value  {StringValue s}
   | TRUE              {BooleanValue true}
   | FALSE             {BooleanValue false}
   | NULL              {NullValue}
@@ -171,8 +179,39 @@ name:
 
 
 enum_value:
-  n = name (* TODO add value check *)
-  { n }
+  | n = NAME          { n }
+  | ON                { "on" }
+  | SCHEMA            { "schema" }
+  | TYPE              { "type" }
+  | ENUM              { "enum" }
+  | INTERFACE         { "interface" }
+  | IMPLEMENTS        { "implements" }
+  | DIRECTIVE         { "directive" }
+  | SCALAR            { "scalar" }
+  | INPUT             { "input" }
+  | UNION             { "union" }
+  | OP_MUTATION       { "mutation" }
+  | OP_QUERY          { "query" }
+  | OP_SUBSCRIPTION   { "subscription" }
+  | EDIR_QUERY  {"QUERY" }
+  | EDIR_MUTATION  {"MUTATION" }
+  | EDIR_SUBSCRIPTION  {"SUBSCRIPTION" }
+  | EDIR_FIELD  {"FIELD" }
+  | EDIR_FRAGMENT_DEFINITION  {"FRAGMENT_DEFINITION" }
+  | EDIR_FRAGMENT_SPREAD  {"FRAGMENT_SPREAD" }
+  | EDIR_INLINE_FRAGMENT  {"INLINE_FRAGMENT" }
+  | TSDIR_SCHEMA  {"SCHEMA" }
+  | TSDIR_SCALAR  {"SCALAR" }
+  | TSDIR_OBJECT  {"OBJECT" }
+  | TSDIR_FIELD_DEFINITION  {"FIELD_DEFINITION" }
+  | TSDIR_ARGUMENT_DEFINITION  {"ARGUMENT_DEFINITION" }
+  | TSDIR_INTERFACE  {"INTERFACE" }
+  | TSDIR_UNION  {"UNION" }
+  | TSDIR_ENUM  {"ENUM" }
+  | TSDIR_ENUM_VALUE  {"ENUM_VALUE" }
+  | TSDIR_INPUT_OBJECT  {"INPUT_OBJECT" }
+  | TSDIR_INPUT_FIELD_DEFINITION  {"INPUT_FIELD_DEFINITION" }
+
 
 list_value:
   L_SQ_BRACKET
@@ -212,7 +251,7 @@ directive_definition:
 
 arguments_definition:
   L_PAREN
-  vs = input_value_definition*
+  vs = input_value_definition+
   R_PAREN
   { vs }
 
@@ -220,51 +259,51 @@ scalar_type_definition:
   ds = description?
   SCALAR
   n = name
-  dirs = directives
-  {{ description = ds; name = n; directives = dirs}}
+  dirs = directives?
+  {{ description = ds; name = n; directives = flat dirs}}
 
 description:
-  s = STRING
+  s = string_value
   { s }
 
 enum_type_definition:
   ds = description?
   ENUM
   n = name
-  dirs = directives
-  vs = enum_values_definition
-  {{ description = ds; name = n; directives = dirs; values = vs}}
+  dirs = directives?
+  vs = enum_values_definition?
+  {{ description = ds; name = n; directives = flat dirs; values = flat vs}}
 
 enum_values_definition:
   L_BRACKET
-  vs = enum_value_definition*
+  vs = enum_value_definition+
   R_BRACKET
   { vs }
 
 enum_value_definition:
   ds = description?
   v = enum_value
-  dirs = directives
-  {{description = ds; value = v; directives = dirs}}
+  dirs = directives?
+  {{description = ds; value = v; directives = flat dirs}}
 
 interface_type_definition:
   ds = description?
   INTERFACE
   n = name
-  dirs = directives
+  dirs = directives?
   fd = fields_definition?
   {
     let v: interface_type_definition = { 
       description = ds; 
       name = n; 
-      directives = dirs; 
+      directives = flat dirs; 
       fields = flat fd
       }  
     in v }
 
 fields_definition:
   L_BRACKET
-  fs = field_definition*
+  fs = field_definition+
   R_BRACKET
   { fs }
 
@@ -274,13 +313,13 @@ field_definition:
   args = arguments_definition?
   COLON
   t = tpe
-  dirs = directives
+  dirs = directives?
   {{ 
     description = ds; 
     name = n; 
     arguments = flat args; 
     tpe = t;
-    directives = dirs; 
+    directives = flat dirs; 
     }}
 
 
@@ -308,13 +347,13 @@ input_object_type_definition:
   ds = description?
   INPUT
   n = name
-  dirs = directives
+  dirs = directives?
   fs = input_fields_definition?
-  {{description = ds; name = n; directives = dirs; fields = flat fs}}
+  {{description = ds; name = n; directives = flat dirs; fields = flat fs}}
 
 input_fields_definition:
   L_BRACKET
-  vs = input_value_definition*
+  vs = input_value_definition+
   R_BRACKET
   { vs }
 
@@ -324,17 +363,17 @@ input_value_definition:
   COLON
   t = tpe
   dv = default_value?
-  dirs = directives
-  {{ description = ds; name = n; tpe = t; defaultValue = dv; directives = dirs }}
+  dirs = directives?
+  {{ description = ds; name = n; tpe = t; defaultValue = dv; directives = flat dirs }}
 
 
 union_type_definition:
   ds = description?
   UNION
   n = name
-  dirs = directives
+  dirs = directives?
   umt = union_member_types?
-  {{description = ds; name = n; directives = dirs; types = flat umt}}
+  {{description = ds; name = n; directives = flat dirs; types = flat umt}}
 
 union_member_types:
   res = rev_union_member_types
@@ -400,13 +439,13 @@ object_type_definition:
   TYPE
   n = name
   impl = implements_interfaces?
-  dirs = directives
+  dirs = directives?
   fd = fields_definition?
   {{ 
     description = ds; 
     name = n; 
     implements = flat impl;
-    directives = dirs;
+    directives = flat dirs;
     fields = flat fd;
     }}
 

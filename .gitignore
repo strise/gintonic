@@ -24,9 +24,9 @@ lib/bs
 .vscode
 .merlin
 .bsb.lock
-src/*/*_parser.ml
-src/*/*_parser.mli
-src/*/*_lexer.ml
+src/**/*_parser.ml
+src/**/*_parser.mli
+src/**/*_lexer.ml
 src/**/*.js
 __tests__/**/*.js
 node_modules

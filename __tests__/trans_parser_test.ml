@@ -2,15 +2,14 @@ open Jest
 open Expect
 open Trans_parser
 open Trans_lexer
-open Trans_syntax
 
-let parse = prog read
+let parse = document read
 
 let parseString(s: string) = parse (Lexing.from_string s)
 
 let testName(program: string): string = "program: \"" ^ (String.escaped program) ^ "\""
 
-let testProgram(program: string)(result: Trans_ast.program) =
+let testProgram(program: string)(result: Trans_ast.document) =
   test (testName program) (
     fun () -> expect (parseString program) |> toEqual result
   )
@@ -18,66 +17,170 @@ let testProgram(program: string)(result: Trans_ast.program) =
 let () = 
   describe "Trans_parser" (fun () -> 
       testProgram 
-        "Foobar"
-        (p #+ (t (ts "Foobar")));
+        "transform Foobar"
+        {transformations =
+           {description = None; selector = {name = "Foobar"; alias = None}; fields = None} 
+           ::[]};
       testProgram 
-        "Foobar Baz"
-        (p #+ 
-         (t (ts "Foobar")) #+ 
-         (t (ts "Baz")));
+        "transform Foobar transform Baz"
+        {transformations = 
+           {description = None; selector = {name = "Foobar"; alias = None}; fields = None}::
+           {description = None; selector = {name = "Baz"; alias = None}; fields = None}::
+           []};
       testProgram 
-        "Foobar: Baz"
-        (p #+ (t ((ts "Foobar") #> "Baz")));
+        "transform Foobar: Baz"
+        {transformations =
+           {description = None; selector = {name = "Baz"; alias = Some "Foobar"}; fields = None} 
+           ::[]};
       testProgram 
         "
-        Foobar: Baz {
+        transform Foobar: Baz {
             field1
             alias2: field2
         }"
-        (p #+ 
-         (t ((ts "Foobar") #> "Baz") $+ 
-          f (fs "field1") $+ 
-          f (fs "alias2" $> "field2")));
+        {transformations =
+           {
+             description = None;
+             selector = {name = "Baz"; alias = Some "Foobar"}; 
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {selector = {name = "field1"; alias = None}; arguments = []; description = None}::
+                   {selector = {name = "field2"; alias = Some "alias2"}; arguments = []; description = None}::
+                   []
+               }} 
+           ::[]};
       testProgram 
         "
         \"\"\"desc\"\"\"
-        Lol
+        transform Lol
         "
-        (p #+ (t_doc (ts "Lol") "desc"));
+        {transformations =
+           {
+             description = Some (BlockStringValue "desc");
+             selector = {name = "Lol"; alias = None}; 
+             fields = None} 
+           ::[]};
       testProgram 
         "
-        Lol {
-            \"\"\"desc\"\"\"
+        transform Lol {
+            \"desc\"
             true
         }
         "
-        (p #+ (t (ts "Lol") $+ f_doc (fs "true")  "desc"));
+        {transformations =
+           {
+             description = None;
+             selector = {name = "Lol"; alias = None}; 
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {
+                     selector = {name = "true"; alias = None}; 
+                     arguments = []; description = Some (StringValue "desc")}::
+                   []
+               }
+           } 
+           ::[]};
       testProgram 
         "
-        Lol {
+        transform Lol {
             null(arg: 123)
         }
         "
-        (p #+ (t (ts "Lol") $+ (f (fs "null") %+ a "arg" (i 123)) ));
+        {transformations = 
+           {
+             description = None;
+             selector = {name = "Lol"; alias = None};
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {
+                     selector = {name = "null"; alias = None}; 
+                     arguments = 
+                       {name = "arg"; value = (Some (IntValue (Int32.of_int 123))); description = None}
+                       ::[]; description = None}::
+                   []
+               };
+           }::[]};
       testProgram 
         "
-        Lol {
+        transform Lol {
 
             field(
                 \"\"\"desc\"\"\"
                 false: 123)
         }
         "
-        (p #+ (t (ts "Lol") $+ (f (fs "field") %+ a_doc "false" (i 123) "desc") ));
+        {transformations = 
+           {
+             description = None;
+             selector = {name = "Lol"; alias = None};
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {selector = {name = "field"; alias = None}; 
+                    arguments = 
+                      {name = "false"; value = (Some (IntValue (Int32.of_int 123))); description = Some (BlockStringValue "desc")}
+                      ::[]; description = None}::
+                   []
+               };
+           }::[]};
 
       testProgram 
         "
-        Lol {
+        transform Lol {
+
+            field(
+                \"\"\"desc\"\"\"
+                false)
+        }
+        "
+        {transformations = 
+           {
+             description = None;
+             selector = {name = "Lol"; alias = None};
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {selector = {name = "field"; alias = None}; 
+                    arguments = 
+                      {name = "false"; value = None; description = Some (BlockStringValue "desc")}
+                      ::[]; description = None}::
+                   []
+               };
+           }::[]};
+
+
+      testProgram 
+        "
+        transform Lol {
             field(arg: [123, 123, true, false, null])
         }
         "
-        (p #+ 
-         (t (ts "Lol") $+ 
-          (f (fs "field") %+ 
-           a "arg" (l ((i 123)::(i 123)::(b true)::(b false)::n::[])))));
+        {transformations = 
+           {
+             description = None;
+             selector = {name = "Lol"; alias = None};
+             fields = Some {
+                 spread = false;
+                 fields = 
+                   {
+                     selector = {name = "field"; alias = None}; 
+                     arguments = 
+                       {name = "arg"; 
+                        value = Some (
+                            ListValue
+                              (
+                                (IntValue (Int32.of_int 123))
+                                ::(IntValue (Int32.of_int 123))
+                                ::(BooleanValue true)
+                                ::(BooleanValue false)
+                                ::(NullValue)
+                                ::[])); description = None}
+                       ::[]; 
+                     description = None}::
+                   []
+               };
+           }::[]};
     )

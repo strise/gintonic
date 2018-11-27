@@ -18,11 +18,105 @@ document : transformation+
 A document consists of a non-empty list of `transformation`s
 
 
-### Transformation
+# Transformation
 
 ```
-transformation : description? "transform" type_selector fields_transformation?
+transformation : type_transformation
+               | schema_transformation
 ```
+
+
+### Schema transformation
+
+```
+schema_transformation : "transform" "schema" "{" operation_type+ "}"
+```
+
+### Operation type definition
+
+```
+operation_type : /(query|mutation|subscription)/
+```
+
+### Type transformation
+
+```
+type_transformation : scalar_type_transformation
+                    | object_type_transformation
+                    | interface_type_transformation
+                    | union_type_transformation
+                    | enum_type_transformation
+                    | input_object_type_transformation
+```
+
+
+### Scalar type transformation
+
+```
+scalar_type_transformation description? "transform" "scalar" type_selector
+```
+
+Scalar transformation only supports type-aliasing.
+
+### Object type transformation
+
+```
+object_type_transformation description? "transform" "type" type_selector fields_transformation?
+```
+
+
+### Interface type transformation
+
+```
+interface_type_transformation description? "transform" "interface" type_selector fields_transformation?
+```
+
+All transformations performed on interfaces are propagated to the types implementing the interfaces.
+
+### Union type transformation
+
+```
+union_type_transformation description? "transform" "union" type_selector
+```
+
+Union type transformation only supports type aliasing.
+
+### Enum type transformation
+
+```
+enum_type_transformation description? "transform" "enum" type_selector enum_values_transformation?
+```
+
+When transforming an enum, only aliasing and documentation is availalbe. The number of enum values
+in the source and target schema must be the same, therefor all enum values not provided will be 
+transfered from the source schema as is. Since the enum values must be unique; overlapping enum values
+or aliases are not allowed.
+
+
+#### Enum values transformation
+
+
+```
+enum_values_transformation : "{" enum_value_transformation+ "}"
+```
+```
+enum_value_transformation : description? enum_value
+```
+
+### Input object type transformation
+
+```
+input_object_type_transformation description? "transform" "input" type_selector input_fields_transformation?
+```
+
+```
+input_fields_transformation : "{" input_value+ "}"
+```
+
+Transforming input objects supports type-aliasing, documentation, and field aliasing. Just as with enum values; the
+input objects must be equal in the source and target schemas, to the degree of aliasing and description. Therefor 
+all fields not provided will automatically be included in the target schema.
+
 
 ### Type selector
 
@@ -36,7 +130,7 @@ type_selector : name
 
 
 ```
-fields_transformation : "{" spread? field_transformation+ "}"
+fields_transformation : "{" field_transformation+ "}"
 ```
 
 
@@ -60,32 +154,25 @@ field_selector : name
 ### Arguments
 
 ```
-"(" described_argument+ ")"
+"(" input_value+ ")"
 ```
 
-### Argument
+### Input value
 
 ```
-described_argument : description? argument
+input_value : description? name default_value?
 ```
 
 ```
-argument : name ":" value
-         | name
+default_value : "=" value
 ```
+
 
 ### Description
 
 ```
 description : string_value
 ```
-
-### Spread
-
-```
-spread : "..."
-```
-
 
 ### Name
 

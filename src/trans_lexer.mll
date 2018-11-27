@@ -41,6 +41,7 @@ rule read =
     | comma         { read lexbuf }
 
     | ':'           { COLON }
+    | '='           { EQUAL }
 
     | '{'           { L_BRACKET }
     | '}'           { R_BRACKET }
@@ -53,7 +54,17 @@ rule read =
     | "false"       { FALSE }
     | "null"        { NULL }
 
-    | "transform"   { TRANSFORM }
+    | "transform"       { TRANSFORM }
+    | "schema"          { SCHEMA }
+    | "query"           { QUERY }
+    | "mutation"        { MUTATION }
+    | "subscription"    { SUBSCRIPTION }
+    | "type"            { TYPE }
+    | "enum"            { ENUM }
+    | "input"           { INPUT }
+    | "interface"       { INTERFACE }
+    | "union"           { UNION }
+    | "scalar"          { SCALAR }
 
     | integer_value { INT (Lexing.lexeme lexbuf) }
     | float_value   { FLOAT (Lexing.lexeme lexbuf) }

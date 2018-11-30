@@ -678,7 +678,7 @@ end = struct
     tt_object_type_definition_3 c s;
     ()
 
-  let tt_interface_type_definition_1 c (s: S.interface_type_definition): unit =
+  let tt_interface_type_definition_1 _ (s: S.interface_type_definition): unit =
     match s.fields with
     | [] -> raise (TypeError "An Interface type must define one or more fields.")
     | _ -> ()
@@ -686,7 +686,7 @@ end = struct
   let tt_interface_type_definition c (s: S.interface_type_definition): unit =
     tt_interface_type_definition_1 c s
 
-  let tt_union_type_definition_1 c (s: S.union_type_definition): unit = 
+  let tt_union_type_definition_1 _ (s: S.union_type_definition): unit = 
     let err = TypeError "A Union type must include one or more unique member types." in
     match s.types with
     | [] -> raise err
@@ -695,7 +695,7 @@ end = struct
   let tt_union_type_definition c (s: S.union_type_definition): unit = 
     tt_union_type_definition_1 c s
 
-  let tt_enum_type_definition_1 c (s: S.enum_type_definition): unit =
+  let tt_enum_type_definition_1 _ (s: S.enum_type_definition): unit =
     let err = TypeError "An Enum type must define one or more unique enum values." in
     match s.values with
     | [] -> raise err
@@ -705,7 +705,7 @@ end = struct
     tt_enum_type_definition_1 c s
 
 
-  let tt_input_object_definition_1 c (s: S.input_object_type_definition): unit =
+  let tt_input_object_definition_1 _ (s: S.input_object_type_definition): unit =
     let err = TypeError "An Input Object type must define one or more input fields." in
     match s.fields with
     | [] -> raise err
@@ -714,7 +714,7 @@ end = struct
   let tt_input_object_type_definition c (s: S.input_object_type_definition): unit =
     tt_input_object_definition_1 c s
 
-  let tt_scalar_type_definition c s = ()
+  let tt_scalar_type_definition _ _ = ()
 
   let c (doc: S.schema_document): S.schema_document = 
     let

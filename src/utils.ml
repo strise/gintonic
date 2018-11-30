@@ -9,7 +9,7 @@ let o_to_list(o: 'a option): 'a list =
 
 let o_fold_right: ('a -> 'b -> 'b) -> 'a option -> 'b -> 'b = fun f -> fun o -> List.fold_right f (o_to_list o)
 
-let rec assoc_filter: 'a -> ('a * 'b) list -> 'b list =
+let assoc_filter: 'a -> ('a * 'b) list -> 'b list =
   fun (a1: 'a) ->
   fun (l: ('a * 'b) list) -> 
     let 

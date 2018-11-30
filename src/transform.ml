@@ -521,15 +521,6 @@ struct
 end
 
 module ShakeIt: sig
-
-  val c: S.schema_document -> S.schema_document
-
-end = struct
-  let c = Utils.identity
-end
-
-
-module TypeCheck: sig
   val c: S.schema_document -> S.schema_document
 end = struct
   type ctx = {
@@ -639,6 +630,118 @@ end = struct
     }
 
 end
+
+module TypeCheck: sig
+  val c: S.schema_document -> S.schema_document
+end = struct
+
+  exception TypeError of string
+
+  type ctx = {
+    interfaces: (string * S.interface_type_definition) list
+  }
+
+  let tt_object_type_defnition_1 _ (s: S.object_type_definition): unit =
+    match s.fields with
+    | [] -> raise (TypeError "An object type must define one or more fields")
+    | _ -> ()
+
+  let unique (f: 'a -> 'a -> bool) (e: exn) (l: 'a list): unit=
+    let _ = 
+      List.fold_right
+        (fun a acc -> 
+           if List.exists (f a) acc 
+           then raise e
+           else a::acc
+        )
+        l
+        []
+    in 
+    ()
+
+  let tt_object_type_definition_3 (c: ctx) (s: S.object_type_definition): unit=
+    let err = (TypeError "An object type may declare that it implements one or more unique interfaces.") in
+    let is = List.map 
+        (fun n -> 
+           match Utils.assoc_opt n c.interfaces with
+           | Some i -> i
+           | None -> raise err
+        )
+        s.implements
+    in
+    unique (==) err is
+
+
+
+  let tt_object_type_definition c (s: S.object_type_definition) : unit =
+    tt_object_type_defnition_1 c s;
+    tt_object_type_definition_3 c s;
+    ()
+
+  let tt_interface_type_definition_1 c (s: S.interface_type_definition): unit =
+    match s.fields with
+    | [] -> raise (TypeError "An Interface type must define one or more fields.")
+    | _ -> ()
+
+  let tt_interface_type_definition c (s: S.interface_type_definition): unit =
+    tt_interface_type_definition_1 c s
+
+  let tt_union_type_definition_1 c (s: S.union_type_definition): unit = 
+    let err = TypeError "A Union type must include one or more unique member types." in
+    match s.types with
+    | [] -> raise err
+    | ss -> unique (=) err ss
+
+  let tt_union_type_definition c (s: S.union_type_definition): unit = 
+    tt_union_type_definition_1 c s
+
+  let tt_enum_type_definition_1 c (s: S.enum_type_definition): unit =
+    let err = TypeError "An Enum type must define one or more unique enum values." in
+    match s.values with
+    | [] -> raise err
+    | ss -> unique (=) err ss
+
+  let tt_enum_type_definition c (s: S.enum_type_definition): unit =
+    tt_enum_type_definition_1 c s
+
+
+  let tt_input_object_definition_1 c (s: S.input_object_type_definition): unit =
+    let err = TypeError "An Input Object type must define one or more input fields." in
+    match s.fields with
+    | [] -> raise err
+    | _ -> ()
+
+  let tt_input_object_type_definition c (s: S.input_object_type_definition): unit =
+    tt_input_object_definition_1 c s
+
+  let tt_scalar_type_definition c s = ()
+
+  let c (doc: S.schema_document): S.schema_document = 
+    let
+      interfaces = List.fold_right (fun l acc -> 
+        match l with 
+        | S.InterfaceTypeDefinition d -> (d.name, d)::acc
+        | _ -> acc
+      ) doc.types []
+    in
+    let ctx = {interfaces = interfaces} in
+    let _ = 
+      List.fold_right (
+        fun t _ -> 
+          match t with
+          | S.InterfaceTypeDefinition t -> tt_interface_type_definition ctx t
+          | S.UnionTypeDefinition t -> tt_union_type_definition ctx t
+          | S.EnumTypeDefinition t -> tt_enum_type_definition ctx t
+          | S.InputObjectTypeDefinition t -> tt_input_object_type_definition ctx t
+          | S.ScalarTypeDefinition t -> tt_scalar_type_definition ctx t
+          | S.ObjectTypeDefinition t -> tt_object_type_definition ctx t
+      ) 
+        doc.types
+        ()
+    in
+    doc
+end
+
 
 
 let (>=): S.schema_document -> (S.schema_document -> S.schema_document) -> S.schema_document = fun s -> fun m -> m s

@@ -646,20 +646,29 @@ let () =
           testPrograms 
             "noop"
             "
-            union T
+            type F {
+              f: String
+            }
+            union T = F
             schema { query: T }
             "
             "
             transform union T
             "
             "
-            union T
+            type F {
+              f: String
+            }
+            union T = F
             schema { query: T }
             ";
           testPrograms 
             "update docs"
             "
-            union T
+            type F {
+              f: String
+            }
+            union T = F
             schema { query: T }
             "
             "
@@ -667,15 +676,21 @@ let () =
             transform union T
             "
             "
+            type F {
+              f: String
+            }
             \"docs\"
-            union T
+            union T = F
             schema { query: T }
             ";
           testPrograms 
             "update docs"
             "
+            type F {
+              f: String
+            }
             \"olddocs\"
-            union T
+            union T = F
             schema { query: T }
             "
             "
@@ -683,15 +698,21 @@ let () =
             transform union T
             "
             "
+            type F {
+              f: String
+            }
             \"docs\"
-            union T
+            union T = F
             schema { query: T }
             ";
           testPrograms 
             "alias type"
             "
+            type F {
+              f: String
+            }
             \"olddocs\"
-            union T
+            union T = F
             schema { query: T }
             "
             "
@@ -699,8 +720,11 @@ let () =
             transform union X: T
             "
             "
+            type F {
+              f: String
+            }
             \"docs\"
-            union X
+            union X = F
             schema { query: X }
             ";
         );
@@ -708,20 +732,26 @@ let () =
           testPrograms 
             "noop"
             "
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             "
             "
             transform enum T
             "
             "
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             ";
           testPrograms 
             "update docs"
             "
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             "
             "
@@ -730,14 +760,18 @@ let () =
             "
             "
             \"docs\"
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             ";
           testPrograms 
             "update docs 2"
             "
             \"olddocs\"
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             "
             "
@@ -746,7 +780,9 @@ let () =
             "
             "
             \"docs\"
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             ";
           testPrograms 
@@ -776,14 +812,18 @@ let () =
           testPrograms 
             "alias type"
             "
-            enum T
+            enum T {
+              VAR
+            }
             schema { query: T }
             "
             "
             transform enum X: T
             "
             "
-            enum X
+            enum X {
+              VAR
+            }
             schema { query: X }
             ";
         );
@@ -791,14 +831,18 @@ let () =
           testPrograms 
             "noop"
             "
-            input T
+            input T {
+              f: String
+            }
             schema { query: T }
             "
             "
             transform input T
             "
             "
-            input T
+            input T {
+              f: String
+            }
             schema { query: T }
             ";
           testPrograms 
@@ -806,7 +850,9 @@ let () =
             "
             directive @foobar(arg: T) on SCHEMA
 
-            input T
+            input T {
+              f: String
+            }
             schema { query: Q }
             "
             "
@@ -815,7 +861,9 @@ let () =
             "
             directive @foobar(arg: X) on SCHEMA
 
-            input X
+            input X {
+              f: String
+            }
 
             schema 
             { query: Q }
@@ -824,6 +872,7 @@ let () =
             "fix field"
             "
             input T {
+              t: String
               f: String
             }
             schema { query: T }
@@ -834,7 +883,9 @@ let () =
             }
             "
             "
-            input T
+            input T {
+              t: String
+            }
             schema { query: T }
             ";
 

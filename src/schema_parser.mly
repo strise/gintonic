@@ -97,8 +97,8 @@ operation_definition:
     ds = directives_nc?
     ss = selection_set
     {{tpe = op; name = n; variables = flat vars; directives = flat ds; selectionSet = ss}}
-(*  | ss = selection_set
-    {{tpe = Query; name = None; variables = []; directives = []; selectionSet = ss}} *)
+  | ss = selection_set
+    {{tpe = Query; name = None; variables = []; directives = []; selectionSet = ss}}
 
 variable_definitions:
   L_PAREN

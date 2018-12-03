@@ -57,29 +57,33 @@ let () =
                   testProgram 
                     "
                         \"Foobar\"
-                        enum _Lol_
+                        enum _Lol_ { VALUE }
                         " 
-                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "_Lol_"; values= []}));
+                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "_Lol_"; values= {value= "VALUE"; description=None; directives=[]}::[]}));
                   testProgram 
                     "
                         \"Foobar\"
-                        enum Lol 
+                        enum Lol  { VALUE }
                         " 
-                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "Lol"; values= []}));
+                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "Lol"; values={value= "VALUE"; description=None; directives=[]}::[]}));
                   testProgram 
                     "
             \"Foobar\"
             # With comment
-            enum Lol 
+            enum Lol {
+              VALUE
+            }
             " 
-                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "Lol"; values= []}));
+                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = []; name = "Lol"; values= {value= "VALUE"; description=None; directives=[]}::[]}));
                   testProgram 
                     "
             \"Foobar\"
             # With comment
-            enum Lol @foobar 
+            enum Lol @foobar  {
+              VALUE
+            }
             " 
-                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = {name="foobar";arguments = []}::[]; name = "Lol"; values= []}));
+                    (td (EnumTypeDefinition {description = Some (StringValue "Foobar"); directives = {name="foobar";arguments = []}::[]; name = "Lol"; values= {value= "VALUE"; description=None; directives=[]}::[]}));
                   testProgram 
                     "
             \"Foobar\"

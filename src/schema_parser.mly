@@ -177,18 +177,22 @@ type_condition:
   nt = named_type
   { nt }
 
+schema_extension_rest:
+  L_BRACKET
+  ops = opreation_type_definition+
+  R_BRACKET
+  { ops }
+
 schema_extension:
   | EXTEND
     SCHEMA
-    ds = directives?
-    {{directives = flat ds; definitions = []}}
+    ds = directives
+    ops = schema_extension_rest?
+    {{directives = ds; definitions = flat ops}}
   | EXTEND
     SCHEMA
-    ds = directives?
-    L_BRACKET
-    ops = opreation_type_definition+
-    R_BRACKET
-    {{directives = flat ds; definitions = ops}}
+    ops = schema_extension_rest
+    {{directives = []; definitions = ops}}
 
 type_extension:
   | s = scalar_type_extension 
@@ -211,38 +215,49 @@ scalar_type_extension:
   ds = directives?
   {{ name = n; directives = flat ds }}
 
+opt_fields_definition:
+  | { None }
+  | fd = fields_definition
+    { Some fd }
+
+opt_dir_fields:
+  | fd = opt_fields_definition
+    {{name = ""; implements = []; directives = []; fields = flat fd}}
+  | dirs = directives
+    fd = opt_fields_definition
+    {{name = ""; implements = []; directives = dirs; fields = flat fd}}
+
 object_type_extension:
   | EXTEND
     TYPE
     n = name
-    is = implements_interfaces?
-    ds = directives?
     fd = fields_definition
-    {{ name = n; implements = flat is; directives = flat ds; fields = fd }}
+    {{ name = n; implements = []; directives = []; fields = fd }}
   | EXTEND
     TYPE
     n = name
-    is = implements_interfaces?
     ds = directives
-    {{ name = n; implements = flat is; directives = ds; fields = [] }}
+    fd = opt_fields_definition
+    {{ name = n; implements = []; directives = ds; fields = flat fd }}
   | EXTEND
     TYPE
     n = name
     is = implements_interfaces
-    {{ name = n; implements = is; directives = []; fields = [] }}
+    rest = opt_dir_fields
+    {{rest with name = n; implements = is }}
 
 interface_type_extension:
   | EXTEND
     INTERFACE
     n = name
-    ds = directives?
     fd = fields_definition
-    {let t: interface_type_extension = {name = n; directives = flat ds; fields = fd } in t}
+    {let t: interface_type_extension = {name = n; directives = []; fields = fd } in t}
   | EXTEND
     INTERFACE
     n = name
     ds = directives
-    {let t: interface_type_extension = {name = n; directives = ds; fields = [] } in t}
+    fd = fields_definition?
+    {let t: interface_type_extension = {name = n; directives = ds; fields = flat fd } in t}
 
 
 union_type_extension:
@@ -262,28 +277,28 @@ enum_type_extension:
   | EXTEND
     ENUM
     n = name
-    ds = directives?
-    vs = enum_values_definition
-    {{name = n; directives = flat ds; values = vs }}
+    ds = directives
+    vs = enum_values_definition?
+    {{name = n; directives = ds; values = flat vs }}
   | EXTEND
     ENUM
     n = name
-    ds = directives
-    {{name = n; directives = ds; values = [] }}
+    vs = enum_values_definition
+    {{name = n; directives = []; values = vs }}
 
 
 input_object_type_extension:
   | EXTEND
     INPUT
     n = name
-    ds = directives?
-    fd = input_fields_definition
-    {{name = n; directives = flat ds; fields = fd }}
+    ds = directives
+    fd = input_fields_definition?
+    {{name = n; directives = ds; fields = flat fd }}
   | EXTEND
     INPUT
     n = name
-    ds = directives
-    {{name = n; directives = ds; fields = [] }}
+    fd = input_fields_definition
+    {{name = n; directives = []; fields = fd }}
 
   
 
@@ -292,7 +307,6 @@ type_system_extension:
     { SchemaExtension se }
   | te = type_extension
     { TypeExtension te }
-
 
 type_system_definition:
   | d = schema_definition     { SchemaDefinition d }
@@ -596,8 +610,8 @@ enum_type_definition:
   ENUM
   n = name
   dirs = directives?
-  vs = enum_values_definition?
-  {{ description = ds; name = n; directives = flat dirs; values = flat vs}}
+  vs = enum_values_definition
+  {{ description = ds; name = n; directives = flat dirs; values = vs}}
 
 enum_values_definition:
   L_BRACKET
@@ -616,13 +630,13 @@ interface_type_definition:
   INTERFACE
   n = name
   dirs = directives?
-  fd = fields_definition?
+  fd = fields_definition
   {
     let v: interface_type_definition = { 
       description = ds; 
       name = n; 
       directives = flat dirs; 
-      fields = flat fd
+      fields = fd
       }  
     in v }
 
@@ -673,8 +687,8 @@ input_object_type_definition:
   INPUT
   n = name
   dirs = directives?
-  fs = input_fields_definition?
-  {{description = ds; name = n; directives = flat dirs; fields = flat fs}}
+  fs = input_fields_definition
+  {{description = ds; name = n; directives = flat dirs; fields = fs}}
 
 input_fields_definition:
   L_BRACKET
@@ -765,13 +779,13 @@ object_type_definition:
   n = name
   impl = implements_interfaces?
   dirs = directives?
-  fd = fields_definition?
+  fd = fields_definition
   {{ 
     description = ds; 
     name = n; 
     implements = flat impl;
     directives = flat dirs;
-    fields = flat fd;
+    fields = fd;
     }}
 
 implements_interfaces:

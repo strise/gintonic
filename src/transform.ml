@@ -223,7 +223,7 @@ end = struct
 
     match fts with
     | [] -> 
-      List.map (fun (d: S.field_definition) -> {d with tpe = s_tpe c d.tpe}) fds
+      List.map (fun (d: S.field_definition) -> {d with tpe = s_tpe c d.tpe; arguments = s_input_values_definition c d.arguments []}) fds
     | fts -> 
       let fieldsAssoc = List.map (fun (def: S.field_definition) -> (def.name, def)) fds in
       let mapper (ft: T.field_transformation): S.field_definition =
@@ -353,7 +353,6 @@ end = struct
   let s t =   s_document (build_schema_context t) t.d 
 
 end
-exception Not_implememted
 
 module Correct : sig
   val c : S.schema_document -> S.schema_document
@@ -635,16 +634,36 @@ module TypeCheck: sig
   val c: S.schema_document -> S.schema_document
 end = struct
 
-  exception TypeError of string
+  type type_error = string
+
+  exception TypeError of type_error
+
+  let (>+): type_error -> type_error -> type_error = (^)
 
   type ctx = {
-    interfaces: (string * S.interface_type_definition) list
+    interfaces: (string * S.interface_type_definition) list;
+    types: (string * S.type_definition) list;
+    find_type: S.name -> S.type_definition;
+    find_interface: S.name -> S.interface_type_definition
   }
 
   let tt_object_type_defnition_1 _ (s: S.object_type_definition): unit =
     match s.fields with
     | [] -> raise (TypeError "An object type must define one or more fields")
     | _ -> ()
+
+  let find_interface (c: (string * S.interface_type_definition) list) (n: S.name): S.interface_type_definition =
+    try 
+      List.assoc n c
+    with
+      Not_found -> raise (TypeError ("Failed to find type with name: " ^ n))
+
+
+  let find_type (c: (string * S.type_definition) list) (n: S.name): S.type_definition =
+    try 
+      List.assoc n c
+    with
+      Not_found -> raise (TypeError ("Failed to find type with name: " ^ n))
 
   let unique (f: 'a -> 'a -> bool) (e: exn) (l: 'a list): unit=
     let _ = 
@@ -659,6 +678,90 @@ end = struct
     in 
     ()
 
+  let rec is_output_type (c: ctx) (t: S.tpe): bool = 
+    match t with
+    | S.ListType t -> is_output_type c t
+    | S.NonNullType (S.NamedType t) -> is_output_type c (S.NamedType t)
+    | S.NonNullType (S.ListType t) -> is_output_type c t
+    | S.NamedType n -> 
+      (match c.find_type n with
+       | S.ScalarTypeDefinition _ -> true
+       | S.ObjectTypeDefinition _ -> true
+       | S.InterfaceTypeDefinition _ -> true
+       | S.UnionTypeDefinition _ -> true
+       | S.EnumTypeDefinition _ -> true
+       | _ -> false
+      )
+
+
+  let rec is_input_type (c: ctx) (t: S.tpe): bool =
+    match t with
+    | S.ListType t -> is_input_type c t
+    | S.NonNullType (S.NamedType t) -> is_input_type c (S.NamedType t)
+    | S.NonNullType (S.ListType t) -> is_input_type c t
+    | S.NamedType n -> 
+      (match c.find_type n with
+       | S.ScalarTypeDefinition _ -> true
+       | S.EnumTypeDefinition _ -> true
+       | S.InputObjectTypeDefinition _ -> true
+       | _ -> false
+      )
+
+
+  let forall (condition: 'a -> bool) (e: exn) (l: 'a list): unit =
+    if List.for_all condition l
+    then ()
+    else raise e
+
+  let starts_with (sub: string) (prefix: string): bool = 
+    if String.length sub < String.length prefix then
+      false
+    else
+      String.sub sub 0 (String.length prefix) = prefix
+
+  let tt_object_type_defnition_2_1 (_: ctx) (s: S.object_type_definition): unit = 
+    let err = TypeError "The field must have a unique name within that Object type; no two fields may share the same name." in
+    unique (fun (f1: S.field_definition) (f2: S.field_definition) -> f1.name = f2.name) err s.fields
+
+  let tt_object_type_defnition_2_2 (_: ctx) (s: S.object_type_definition): unit = 
+    let err = TypeError "The field must not have a name which begins with the characters \"__\" (two underscores)." in
+    forall (fun (f: S.field_definition) -> not (starts_with f.name "__")) err s.fields 
+
+  let tt_object_type_defnition_2_3 (c: ctx) (s: S.object_type_definition): unit =
+    let err = TypeError "The field must return a type where IsOutputType(fieldType) returns true." in
+    forall (fun (f: S.field_definition) -> is_output_type c f.tpe) err s.fields 
+
+  let tt_object_type_defnition_2_4_1 (_: ctx) (s: S.field_definition): unit =
+    let err = TypeError "The argument must not have a name which begins with the characters \"__\" (two underscores)." in
+    forall (fun (f: S.input_value_definition) -> not (starts_with f.name "__")) err s.arguments
+
+  let tt_object_type_defnition_2_4_2 (c: ctx) (s: S.field_definition): unit =
+    let err = TypeError "The argument must accept a type where IsInputType(argumentType) returns true." in
+    forall (fun (f: S.input_value_definition) -> is_input_type c f.tpe) err s.arguments
+
+
+  let tt_object_type_defnition_2_4 (c: ctx) (s: S.object_type_definition): unit =
+    let err = "For each argument of the field: " in
+    try 
+      List.fold_right
+        (fun f _ -> 
+           tt_object_type_defnition_2_4_1 c f;
+           tt_object_type_defnition_2_4_2 c f;
+        ) 
+        s.fields
+        ()
+    with
+      TypeError t -> raise (TypeError (err >+ t))
+
+  let tt_object_type_defnition_2 (c: ctx) (s: S.object_type_definition): unit = 
+    let err = "For each field of an Object type: " in
+    try 
+      tt_object_type_defnition_2_1 c s;
+      tt_object_type_defnition_2_2 c s;
+      tt_object_type_defnition_2_3 c s;
+      tt_object_type_defnition_2_4 c s;
+    with TypeError t -> (raise (TypeError (err >+ t)))
+
   let tt_object_type_definition_3 (c: ctx) (s: S.object_type_definition): unit=
     let err = (TypeError "An object type may declare that it implements one or more unique interfaces.") in
     let is = List.map 
@@ -671,11 +774,103 @@ end = struct
     in
     unique (==) err is
 
+  let rec is_equal (c: ctx) (t1: S.tpe) (t2: S.tpe): bool = match t1, t2 with
+    | (S.ListType t1, S.ListType t2) -> is_equal c t1 t2
+    | (S.NonNullType (S. NamedType n1), S.NonNullType (S.NamedType n2)) -> is_equal c (S.NamedType n1) (S.NamedType n2)
+    | (S.NamedType n1, S.NamedType n2) -> (c.find_type n1) == (c.find_type n2)
+    | _ -> false
+
+  let rec is_sub_type_or_equal (c: ctx) (sub: S.tpe) (sup: S.tpe): bool= (* TODO: check with subtypes of non-null *)
+    match (sub, sup) with
+    | (S.ListType t1, S.ListType t2) -> is_sub_type_or_equal c t1 t2 (* CASE: List content are subtypes  *)
+    | (S.NonNullType (S.ListType t1), S.NonNullType (S.ListType t2)) -> is_sub_type_or_equal c t1 t2 (* CASE: Equal  *)
+    | (S.NonNullType (S.NamedType t1), S.NonNullType (S.NamedType t2)) -> is_sub_type_or_equal c (S.NamedType t1) (S.NamedType t2) (* CASE: Equal  *)
+    | (S.NonNullType (S.NamedType t1), (S.NamedType t2)) -> is_sub_type_or_equal c (S.NamedType t1) (S.NamedType t2) (* CASE: Left-side non-null erasure *)
+    | (S.NamedType n1, S.NamedType n2) -> (
+        let t1 = c.find_type n1 in
+        let t2 = c.find_type n2 in
+        if t1 == t2 (* CASE Equal types *)
+        then true
+        else (
+          match t1, t2 with (* CASE: Possible types *)
+          | S.ObjectTypeDefinition _, S.UnionTypeDefinition {types} -> List.exists (fun t2 -> t1 == t2) (List.map (fun n -> c.find_type n) types)
+          | S.ObjectTypeDefinition {implements}, S.InterfaceTypeDefinition _ -> List.exists (fun t2 -> t1 == t2) (List.map (fun n -> c.find_type n) implements)
+          | _ -> false
+        )
+      )
+    | _ -> false
+
+  let tt_object_type_defnition_4_1_1 (c: ctx) (i: S.field_definition) (f: S.field_definition): unit =
+    let err = TypeError "The object field must be of a type which is equal to or a sub‐type of the interface field (covariant)." in
+    if is_sub_type_or_equal c f.tpe i.tpe 
+    then ()
+    else raise err
+
+  let tt_object_type_defnition_4_1_2_1 (c: ctx) (i: S.input_value_definition) (f: S.input_value_definition): unit = 
+    if is_equal c i.tpe f.tpe
+    then ()
+    else raise (TypeError "The object field argument must accept the same type (invariant) as the interface field argument.")
+
+
+
+  let tt_object_type_defnition_4_1_2 (c: ctx) (i: S.field_definition) (f: S.field_definition): unit =
+    let err = TypeError "The object field must include an argument of the same name for every argument defined in the interface field." in 
+    let argAssoc = List.map (fun (a: S.input_value_definition) -> (a.name, a)) f.arguments in
+    List.fold_right
+      (fun (ia: S.input_value_definition) _ -> 
+         match Utils.assoc_opt ia.name argAssoc with
+         | Some a -> tt_object_type_defnition_4_1_2_1 c ia a
+         | None -> raise err
+      )
+      i.arguments
+      ()
+
+  let tt_object_type_defnition_4_1_3 (_: ctx) (i: S.field_definition) (f: S.field_definition): unit =
+    let err = TypeError "The object field may include additional arguments not defined in the interface field, but any additional argument must not be required, e.g. must not be of a non‐nullable type." in 
+    let interfaceArgsAssoc = List.map (fun (a: S.input_value_definition) -> (a.name, a)) i.arguments in
+    List.fold_right (fun (a: S.input_value_definition) _ -> (
+          match a.tpe, Utils.assoc_opt a.name interfaceArgsAssoc with
+          | (S.NonNullType _, None) -> raise err
+          | _ -> ()
+        ))
+      f.arguments
+      ()
+
+  let tt_object_type_defnition_4_1 (c: ctx) (s: S.object_type_definition): unit =
+    let err = "The object type must include a field of the same name for every field defined in an interface. " in
+    let fieldAssoc = List.map (fun (f: S.field_definition) -> (f.name, f)) s.fields in
+    try 
+      List.fold_right
+        (fun (iff: S.field_definition) _ -> 
+           let 
+             f = match Utils.assoc_opt iff.name fieldAssoc with
+             | Some f -> f
+             | None -> raise (TypeError err)
+           in
+           (
+             tt_object_type_defnition_4_1_1 c iff f;
+             tt_object_type_defnition_4_1_2 c iff f;
+             tt_object_type_defnition_4_1_3 c iff f;
+           ))
+        (List.flatten (List.map (fun (i: S.interface_type_definition) -> i.fields) (List.map (fun n -> c.find_interface n) s.implements)))
+        ()
+    with
+      TypeError t -> raise (TypeError (err >+ t))
+
+
+  let tt_object_type_defnition_4 (c: ctx) (s: S.object_type_definition): unit = 
+    let err = "An object type must be a super‐set of all interfaces it implements: " in
+    try 
+      tt_object_type_defnition_4_1 c s
+    with
+      TypeError t -> raise (TypeError (err >+ t))
 
 
   let tt_object_type_definition c (s: S.object_type_definition) : unit =
     tt_object_type_defnition_1 c s;
+    tt_object_type_defnition_2 c s;
     tt_object_type_definition_3 c s;
+    tt_object_type_defnition_4 c s;
     ()
 
   let tt_interface_type_definition_1 _ (s: S.interface_type_definition): unit =
@@ -683,8 +878,50 @@ end = struct
     | [] -> raise (TypeError "An Interface type must define one or more fields.")
     | _ -> ()
 
+  let tt_interface_type_definition_2_1 _ (s: S.interface_type_definition): unit =
+    let err = TypeError "The field must have a unique name within that Interface type; no two fields may share the same name." in
+    unique (fun (f1: S.field_definition) f2 -> f1.name = f2.name) err s.fields
+
+  let tt_interface_type_definition_2_2 _ (s: S.interface_type_definition): unit =
+    let err = TypeError "The field must not have a name which begins with the characters \"__\" (two underscores)."  in
+    forall (fun (f: S.field_definition) -> not (starts_with f.name "__")) err s.fields 
+
+  let tt_interface_type_definition_2_3 c (s: S.interface_type_definition): unit = 
+    let err = TypeError "The field must return a type where IsOutputType(fieldType) returns true."  in
+    forall (fun (f: S.field_definition) -> is_output_type c f.tpe) err s.fields 
+
+  let tt_interface_type_definition_2_4_1 _ (f: S.field_definition): unit = 
+    let err = TypeError "The argument must not have a name which begins with the characters \"__\" (two underscores)."  in
+    forall (fun (f: S.input_value_definition) -> not (starts_with f.name "__")) err f.arguments
+
+  let tt_interface_type_definition_2_4_2 c (f: S.field_definition): unit =
+    let err = TypeError "The argument must accept a type where IsInputType(argumentType) returns true."  in
+    forall (fun (f: S.input_value_definition) -> is_input_type c f.tpe) err f.arguments
+
+  let tt_interface_type_definition_2_4 c (s: S.interface_type_definition): unit =
+    let err = "For each argument of the field:" in
+    try 
+      List.fold_right
+        (fun field _ -> 
+           tt_interface_type_definition_2_4_1 c field;
+           tt_interface_type_definition_2_4_2 c field
+        )
+        s.fields
+        ()
+    with TypeError t -> raise (TypeError (err >+ t))
+
+  let tt_interface_type_definition_2 c (s: S.interface_type_definition): unit =
+    let err = "For each field of an Interface type:" in
+    try 
+      tt_interface_type_definition_2_1 c s;
+      tt_interface_type_definition_2_2 c s;
+      tt_interface_type_definition_2_3 c s;
+      tt_interface_type_definition_2_4 c s;
+    with TypeError t -> raise (TypeError (err >+ t))
+
   let tt_interface_type_definition c (s: S.interface_type_definition): unit =
-    tt_interface_type_definition_1 c s
+    tt_interface_type_definition_1 c s;
+    tt_interface_type_definition_2 c s
 
   let tt_union_type_definition_1 _ (s: S.union_type_definition): unit = 
     let err = TypeError "A Union type must include one or more unique member types." in
@@ -692,8 +929,20 @@ end = struct
     | [] -> raise err
     | ss -> unique (=) err ss
 
+  let tt_union_type_definition_2 c (s: S.union_type_definition): unit = 
+    let err = TypeError "The member types of a Union type must all be Object base types; Scalar, Interface and Union types must not be member types of a Union. Similarly, wrapping types must not be member types of a Union." in
+    List.fold_right
+      (fun t _ -> (
+           match c.find_type t with
+           | ObjectTypeDefinition _ -> ()
+           | _ -> raise err
+         ))
+      s.types
+      ()
+
   let tt_union_type_definition c (s: S.union_type_definition): unit = 
-    tt_union_type_definition_1 c s
+    tt_union_type_definition_1 c s;
+    tt_union_type_definition_2 c s
 
   let tt_enum_type_definition_1 _ (s: S.enum_type_definition): unit =
     let err = TypeError "An Enum type must define one or more unique enum values." in
@@ -711,10 +960,57 @@ end = struct
     | [] -> raise err
     | _ -> ()
 
+  let tt_input_object_definition_2_1 _ (s: S.input_object_type_definition)= 
+    let err = TypeError "The input field must have a unique name within that Input Object type; no two input fields may share the same name." in
+    unique (fun (n1: S.input_value_definition) n2 -> n1.name = n2.name) err s.fields
+
+  let tt_input_object_definition_2_2  _ (s: S.input_object_type_definition) = 
+    let err = TypeError "The input field must not have a name which begins with the characters \"__\" (two underscores)." in
+    forall (fun (f: S.input_value_definition) -> not (starts_with f.name "__")) err s.fields 
+
+  let tt_input_object_definition_2_3 c (s: S.input_object_type_definition) = 
+    let err = TypeError "The input field must accept a type where IsInputType(inputFieldType) returns true." in
+    forall (fun (f: S.input_value_definition) -> is_input_type c f.tpe) err s.fields 
+
+  let tt_input_object_definition_2 c (s: S.input_object_type_definition): unit =
+    let err = "For each input field of an Input Object type:" in
+    try
+      tt_input_object_definition_2_1 c  s;
+      tt_input_object_definition_2_2 c s;
+      tt_input_object_definition_2_3 c s
+    with
+      TypeError t -> raise (TypeError (err >+ t))
+
   let tt_input_object_type_definition c (s: S.input_object_type_definition): unit =
-    tt_input_object_definition_1 c s
+    tt_input_object_definition_1 c s;
+    tt_input_object_definition_2 c s
 
   let tt_scalar_type_definition _ _ = ()
+
+  let build_in_scalars = 
+    (S.ScalarTypeDefinition {description = None; name = "String"; directives = []})
+    ::(S.ScalarTypeDefinition {description = None; name = "Int"; directives = []})
+    ::(S.ScalarTypeDefinition {description = None; name = "Float"; directives = []})
+    ::(S.ScalarTypeDefinition {description = None; name = "Boolean"; directives = []})
+    ::(S.ScalarTypeDefinition {description = None; name = "ID"; directives = []})
+    ::[]
+
+  let tt_directive_definition _ _ : unit = () (* TODO: Add directive validation *)
+
+  let tt_schema (c: ctx) (s: S.schema_definition) = 
+    List.fold_right
+      (fun (op: S.operation_type_definition) _ -> 
+         match (c.find_type op.tpe) with
+         | S.ObjectTypeDefinition _ -> ()
+         | _ -> raise (TypeError ("Operations must be an object type"))
+      )
+      s.operations
+      ();
+    match Utils.find_opt (fun (op: S.operation_type_definition) -> op.operation == S.Query ) s.operations
+    with
+    | None -> raise (TypeError ("A query operation must be defined."))
+    | _ -> ()
+
 
   let c (doc: S.schema_document): S.schema_document = 
     let
@@ -724,21 +1020,42 @@ end = struct
         | _ -> acc
       ) doc.types []
     in
-    let ctx = {interfaces = interfaces} in
-    let _ = 
-      List.fold_right (
-        fun t _ -> 
-          match t with
-          | S.InterfaceTypeDefinition t -> tt_interface_type_definition ctx t
-          | S.UnionTypeDefinition t -> tt_union_type_definition ctx t
-          | S.EnumTypeDefinition t -> tt_enum_type_definition ctx t
-          | S.InputObjectTypeDefinition t -> tt_input_object_type_definition ctx t
-          | S.ScalarTypeDefinition t -> tt_scalar_type_definition ctx t
-          | S.ObjectTypeDefinition t -> tt_object_type_definition ctx t
-      ) 
-        doc.types
-        ()
+    let
+      types = List.map (fun t -> match t with
+        | S.InterfaceTypeDefinition d -> (d.name, t)
+        | S.ScalarTypeDefinition d -> (d.name, t)
+        | S.ObjectTypeDefinition d -> (d.name, t)
+        | S.EnumTypeDefinition  d -> (d.name, t)
+        | S.UnionTypeDefinition  d -> (d.name, t)
+        | S.InputObjectTypeDefinition  d -> (d.name, t)
+      ) (List.append doc.types build_in_scalars)
     in
+    let ctx = {
+      interfaces = interfaces; 
+      types = types;
+      find_type = find_type types;
+      find_interface = find_interface interfaces;
+    } 
+    in
+    List.fold_right (
+      fun t _ -> 
+        match t with
+        | S.InterfaceTypeDefinition t -> tt_interface_type_definition ctx t
+        | S.UnionTypeDefinition t -> tt_union_type_definition ctx t
+        | S.EnumTypeDefinition t -> tt_enum_type_definition ctx t
+        | S.InputObjectTypeDefinition t -> tt_input_object_type_definition ctx t
+        | S.ScalarTypeDefinition t -> tt_scalar_type_definition ctx t
+        | S.ObjectTypeDefinition t -> tt_object_type_definition ctx t
+    ) 
+      doc.types
+      ();
+    tt_schema ctx doc.schema;
+    List.fold_right (
+      fun t _ ->
+        tt_directive_definition ctx t
+    )
+      doc.directives
+      ();
     doc
 end
 

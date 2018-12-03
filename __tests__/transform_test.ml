@@ -22,8 +22,14 @@ let () =
   describe "Transform" (fun () -> 
       describe "schema" (fun () -> 
           testPrograms
-            "schema limit"
+            "schema limit 1"
             "
+            type Q {
+              f: String
+            }
+            type M {
+              f: String
+            }
             schema {
               query: Q
               mutation: M
@@ -35,8 +41,29 @@ let () =
             }
             "
             "
+            type Q {
+              f: String
+            }
             schema {
               query: Q
+            }
+            ";
+          testPrograms
+            "schema limit 2"
+            "
+            type Query {
+              f: String
+            }
+            "
+            "
+            transform type Query
+            "
+            "
+            type Query {
+              f: String
+            }
+            schema {
+              query: Query
             }
             "
         );
@@ -366,8 +393,8 @@ let () =
               baz: String
               foo: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             "
             "
@@ -379,8 +406,8 @@ let () =
             interface Q {
               bar: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             ";
 
@@ -394,9 +421,10 @@ let () =
             type F implements Q {
               foo: String
             }
-            schema {
-              query: F
+            type Query {
+              f: F
             }
+
             "
             "
             transform interface X: Q 
@@ -409,8 +437,8 @@ let () =
               foo: String
             }
 
-            schema {
-              query: F
+            type Query {
+              f: F
             }
             ";
 
@@ -423,9 +451,10 @@ let () =
             type F implements Q {
               foo: Q
             }
-            schema {
-              query: F
+            type Query {
+              f: F
             }
+
             "
             "
             transform interface X: Q 
@@ -438,8 +467,8 @@ let () =
               foo: X
             }
 
-            schema {
-              query: F
+            type Query {
+              f: F
             }
             ";
 
@@ -449,9 +478,10 @@ let () =
             interface Q {
               foo: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
+
             "
             "
             transform interface X: Q
@@ -460,9 +490,10 @@ let () =
             interface X {
               foo: String
             }
-            schema {
-              query: X
+            type Query {
+              f: X
             }
+
             ";
 
           testPrograms 
@@ -472,9 +503,10 @@ let () =
               bar: String
               foo: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
+
             "
             "
             transform interface Q {
@@ -485,8 +517,8 @@ let () =
             interface Q {
               foo: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             ";
 
@@ -496,8 +528,8 @@ let () =
             interface Q {
               foo(arg: String): String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             "
             "
@@ -509,8 +541,8 @@ let () =
             interface Q {
               foo: String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             ";
 
@@ -521,8 +553,8 @@ let () =
             interface Q {
               foo(arg: String arg2: Boolean arg3: Boolean): String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             "
             "
@@ -534,8 +566,8 @@ let () =
             interface Q {
               foo(arg2: Boolean arg3: Boolean): String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             ";
           testPrograms 
@@ -552,8 +584,8 @@ let () =
                 ): String
 
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             "
             "
@@ -577,8 +609,8 @@ let () =
                 arg2: String
                 ): String
             }
-            schema {
-              query: Q
+            type Query {
+              f: Q
             }
             ";
 
@@ -588,20 +620,26 @@ let () =
             "noop"
             "
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             transform scalar T
             "
             "
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs"
             "
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -610,14 +648,18 @@ let () =
             "
             \"docs\"
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs"
             "
             \"olddocs\"
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -626,20 +668,27 @@ let () =
             "
             \"docs\"
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "alias type"
             "
             scalar T
-            schema { query: T }
+            type Query {
+              f: T
+            }
+
             "
             "
             transform scalar X: T
             "
             "
             scalar X
-            schema { query: X }
+            type Query {
+              f: X
+            }
             ";
         );
       describe "union" (fun () -> 
@@ -650,7 +699,9 @@ let () =
               f: String
             }
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             transform union T
@@ -660,7 +711,9 @@ let () =
               f: String
             }
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs"
@@ -669,7 +722,9 @@ let () =
               f: String
             }
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -681,7 +736,9 @@ let () =
             }
             \"docs\"
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs"
@@ -691,7 +748,9 @@ let () =
             }
             \"olddocs\"
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -703,7 +762,9 @@ let () =
             }
             \"docs\"
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "alias type"
@@ -713,7 +774,9 @@ let () =
             }
             \"olddocs\"
             union T = F
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -725,7 +788,9 @@ let () =
             }
             \"docs\"
             union X = F
-            schema { query: X }
+            type Query {
+              f: X
+            }
             ";
         );
       describe "enum" (fun () -> 
@@ -735,7 +800,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             transform enum T
@@ -744,7 +811,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs"
@@ -752,7 +821,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -763,7 +834,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs 2"
@@ -772,7 +845,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -783,7 +858,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "update docs 3"
@@ -792,7 +869,9 @@ let () =
             enum T {
               VALUE VALUE2
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             \"docs\"
@@ -807,7 +886,9 @@ let () =
               \"docs2\"
               VALUE VALUE2
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             ";
           testPrograms 
             "alias type"
@@ -815,7 +896,9 @@ let () =
             enum T {
               VAR
             }
-            schema { query: T }
+            type Query {
+              f: T
+            }
             "
             "
             transform enum X: T
@@ -824,7 +907,9 @@ let () =
             enum X {
               VAR
             }
-            schema { query: X }
+            type Query {
+              f: X
+            }
             ";
         );
       describe "input object" (fun () -> 
@@ -834,7 +919,11 @@ let () =
             input T {
               f: String
             }
-            schema { query: T }
+            type Q {
+              f(a: T): String
+            }
+
+            schema { query: Q }
             "
             "
             transform input T
@@ -843,7 +932,10 @@ let () =
             input T {
               f: String
             }
-            schema { query: T }
+            type Q {
+              f(a: T): String
+            }
+            schema { query: Q }
             ";
           testPrograms 
             "directive"
@@ -851,6 +943,9 @@ let () =
             directive @foobar(arg: T) on SCHEMA
 
             input T {
+              f: String
+            }
+            type Q {
               f: String
             }
             schema { query: Q }
@@ -864,7 +959,9 @@ let () =
             input X {
               f: String
             }
-
+            type Q {
+              f: String
+            }
             schema 
             { query: Q }
             ";
@@ -875,7 +972,9 @@ let () =
               t: String
               f: String
             }
-            schema { query: T }
+            type Query {
+              f(a: T): String
+            }
             "
             "
             transform input T {
@@ -886,7 +985,11 @@ let () =
             input T {
               t: String
             }
-            schema { query: T }
+            type Query {
+              f(a: T): String
+            }
+
+
             ";
 
           testPrograms 
@@ -923,7 +1026,9 @@ let () =
             input T {
               f: T
             }
-            schema { query: T }
+            type Query {
+              f(a: T): String
+            }
             "
             "
             transform input X: T
@@ -932,19 +1037,23 @@ let () =
             input X {
               f: X
             }
-            schema { query: X }
+            type Query {
+              f(a: X): String
+            }
             ";
           testPrograms 
             "update directive"
             "
             directive @foo (a: T = {f : \"f\" t : \"t\"}) on QUERY
 
-
             input T @foo(a: {f : \"f\" t : \"t\"}) {
               f: String
               t: String
             }
-            schema { query: T }
+
+            type Query {
+              f: String
+            }
             "
             "
             transform input T {
@@ -956,7 +1065,9 @@ let () =
             input T @foo(a: {t : \"t\"}) {
               t: String
             }
-            schema { query: T }
+            type Query {
+              f: String
+            }
             ";
         );
     )

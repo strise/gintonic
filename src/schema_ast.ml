@@ -363,4 +363,26 @@ let document_to_schema_document (d: document): schema_document option =
   in
   match ops with
   | (s::[], dirs, tps) -> Some {schema = s; directives = dirs; types =tps}
+  | ([], dirs, tps) -> (
+      let
+        ops = 
+        List.fold_right 
+          (fun (op: type_definition) (q, m, s) -> (
+               match op with
+               | ObjectTypeDefinition op -> (
+                   match op.name with
+                   | "Query" -> (Some {operation = Query; tpe = op.name }, m, s)
+                   | "Mutation" -> (q, Some {operation = Mutation; tpe = op.name }, s)
+                   | "Subscription" -> (q, m, Some {operation = Subscription; tpe = op.name })
+                   | _ -> (q, m, s)
+                 )
+               | _ -> (q, m, s)
+             ))
+          tps
+          (None, None, None)
+      in
+      match ops with
+      | Some q, m, s -> Some {schema = {directives = []; operations = Utils.flatten ((Some q)::m::s::[])}; directives = dirs; types = tps }
+      | _ -> None
+    )
   | _ -> None

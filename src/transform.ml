@@ -643,14 +643,11 @@ end = struct
   type ctx = {
     interfaces: (string * S.interface_type_definition) list;
     types: (string * S.type_definition) list;
+    directives: (string * S.directive_definition) list;
     find_type: S.name -> S.type_definition;
-    find_interface: S.name -> S.interface_type_definition
+    find_interface: S.name -> S.interface_type_definition;
+    find_directive: S.name -> S.directive_definition
   }
-
-  let tt_object_type_defnition_1 _ (s: S.object_type_definition): unit =
-    match s.fields with
-    | [] -> raise (TypeError "An object type must define one or more fields")
-    | _ -> ()
 
   let find_interface (c: (string * S.interface_type_definition) list) (n: S.name): S.interface_type_definition =
     try 
@@ -658,12 +655,23 @@ end = struct
     with
       Not_found -> raise (TypeError ("Failed to find type with name: " ^ n))
 
+  let find_directive (d: (string * S.directive_definition) list) (n: S.name): S.directive_definition =
+    try 
+      List.assoc n d
+    with
+      Not_found -> raise (TypeError ("Failed to find directive with name: " ^ n))
+
 
   let find_type (c: (string * S.type_definition) list) (n: S.name): S.type_definition =
     try 
       List.assoc n c
     with
       Not_found -> raise (TypeError ("Failed to find type with name: " ^ n))
+
+  let tt_object_type_defnition_1 _ (s: S.object_type_definition): unit =
+    match s.fields with
+    | [] -> raise (TypeError "An object type must define one or more fields")
+    | _ -> ()
 
   let unique (f: 'a -> 'a -> bool) (e: exn) (l: 'a list): unit=
     let _ = 
@@ -995,7 +1003,59 @@ end = struct
     ::(S.ScalarTypeDefinition {description = None; name = "ID"; directives = []})
     ::[]
 
-  let tt_directive_definition _ _ : unit = () (* TODO: Add directive validation *)
+  let tt_directive_definition_1 (c: ctx) (d: S.directive_definition) : unit = 
+    let dirs = 
+      List.map 
+        (fun (d: 'a S.directive) -> c.find_directive d.name)
+        (List.flatten ((List.map (fun (d: S.input_value_definition) -> d.directives)) d.arguments)) 
+    in
+    let err =
+      TypeError "A directive definition must not contain the use of a directive which references itself directly."
+    in 
+    if List.exists (fun a -> a == d) dirs 
+    then raise err
+    else ()
+
+
+  let tt_directive_definition_2 (_: ctx) (_: S.directive_definition) : unit = 
+    () (* TODO: Add recursive check *)
+
+  let tt_directive_definition_3 (_: ctx) (d: S.directive_definition) : unit = 
+    let err = TypeError "The directive must not have a name which begins with the characters \"__\" (two underscores)." in
+    if starts_with d.name "__" then raise err else ()
+
+  let tt_directive_definition_4_1 (_: ctx) (s: S.directive_definition): unit =
+    let err = TypeError "The argument must not have a name which begins with the characters \"__\" (two underscores)." in
+    forall (fun (f: S.input_value_definition) -> not (starts_with f.name "__")) err s.arguments
+
+  let tt_directive_definition_4_2 (c: ctx) (s: S.directive_definition): unit =
+    let err = TypeError "The argument must accept a type where IsInputType(argumentType) returns true." in
+    forall (fun (f: S.input_value_definition) -> is_input_type c f.tpe) err s.arguments
+
+  let tt_directive_definition_4 (c: ctx) (d: S.directive_definition) : unit = 
+    try 
+      tt_directive_definition_4_1 c d;
+      tt_directive_definition_4_2 c d
+    with TypeError t -> raise (TypeError ("For each argument of the directive:" >+ t))
+
+  let tt_directive_definition (c: ctx) (d: S.directive_definition) : unit = 
+    tt_directive_definition_1 c d;
+    tt_directive_definition_2 c d;
+    tt_directive_definition_3 c d;
+    tt_directive_definition_4 c d;
+    () (* TODO: Add directive validation *)
+
+  let tt_type_definition ctx d: unit =
+    let err = TypeError "The type must not have a name which begins with the characters \"__\" (two underscores)." in
+    let c n = if starts_with n "__" then raise err else () in
+    match d with
+    | S.InterfaceTypeDefinition t -> c t.name; tt_interface_type_definition ctx t
+    | S.UnionTypeDefinition t -> c t.name; tt_union_type_definition ctx t
+    | S.EnumTypeDefinition t -> c t.name; tt_enum_type_definition ctx t
+    | S.InputObjectTypeDefinition t -> c t.name; tt_input_object_type_definition ctx t
+    | S.ScalarTypeDefinition t -> c t.name; tt_scalar_type_definition ctx t
+    | S.ObjectTypeDefinition t -> c t.name; tt_object_type_definition ctx t
+
 
   let tt_schema (c: ctx) (s: S.schema_definition) = 
     List.fold_right
@@ -1030,23 +1090,20 @@ end = struct
         | S.InputObjectTypeDefinition  d -> (d.name, t)
       ) (List.append doc.types build_in_scalars)
     in
+    let 
+      directives = List.map (fun (d: S.directive_definition) -> (d.name, d)) doc.directives
+    in
     let ctx = {
       interfaces = interfaces; 
       types = types;
+      directives = directives;
       find_type = find_type types;
       find_interface = find_interface interfaces;
+      find_directive = find_directive directives;
     } 
     in
-    List.fold_right (
-      fun t _ -> 
-        match t with
-        | S.InterfaceTypeDefinition t -> tt_interface_type_definition ctx t
-        | S.UnionTypeDefinition t -> tt_union_type_definition ctx t
-        | S.EnumTypeDefinition t -> tt_enum_type_definition ctx t
-        | S.InputObjectTypeDefinition t -> tt_input_object_type_definition ctx t
-        | S.ScalarTypeDefinition t -> tt_scalar_type_definition ctx t
-        | S.ObjectTypeDefinition t -> tt_object_type_definition ctx t
-    ) 
+    List.fold_right 
+      (fun t _ -> tt_type_definition ctx t) 
       doc.types
       ();
     tt_schema ctx doc.schema;

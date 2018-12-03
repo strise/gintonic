@@ -1046,12 +1046,12 @@ let () =
             "
             directive @foo (a: T = {f : \"f\" t : \"t\"}) on QUERY
 
-            input T @foo(a: {f : \"f\" t : \"t\"}) {
+            input T {
               f: String
               t: String
             }
 
-            type Query {
+            type Query @foo(a: {f : \"f\" t : \"t\"}) {
               f: String
             }
             "
@@ -1062,10 +1062,10 @@ let () =
             "
             "
             directive @foo (a: T = {t : \"t\"}) on QUERY
-            input T @foo(a: {t : \"t\"}) {
+            input T {
               t: String
             }
-            type Query {
+            type Query @foo(a: {t : \"t\"}) {
               f: String
             }
             ";

@@ -1016,9 +1016,72 @@ end = struct
     then raise err
     else ()
 
+  type hist = (S.directive_definition list * S.type_definition list)
 
-  let tt_directive_definition_2 (_: ctx) (_: S.directive_definition) : unit = 
-    () (* TODO: Add recursive check *)
+  let foreach (f: 'a -> unit) (l: 'a list): unit =
+    List.fold_right (fun a _ -> f a) l () 
+
+  let rec c_directive (c: ctx) (err: exn) ((h1,h2): hist) (d: 'a S.directive) : unit  = 
+    let dir = c.find_directive d.name in
+    let exists = List.exists (fun d2 -> d2 == dir) h1 in
+    if exists then raise err else c_directive_definition c err (h1,h2) dir
+
+
+  and c_type_definition (c: ctx) (err: exn) ((h1, h2): hist) (t: S.type_definition) : unit = 
+    let history = (h1, t::h2) in
+    match t with
+    | S.ObjectTypeDefinition {directives; fields; implements} -> 
+      foreach (c_directive c err history) directives;
+      foreach (c_field_definition c err history) fields;
+      foreach (c_type_definition c err history) (List.map c.find_type implements)
+    | S.InterfaceTypeDefinition {directives; fields}->  
+      foreach (c_directive c err history) directives;
+      foreach (c_field_definition c err history) fields
+    | S.UnionTypeDefinition {directives; types} ->
+      foreach (c_directive c err history) directives;
+      foreach (c_type_definition c err history) (List.map c.find_type types)
+    | S.EnumTypeDefinition {directives; values} ->
+      foreach (c_directive c err history) directives;
+      foreach (c_enum_value_definition c err history) values
+    | S.ScalarTypeDefinition {directives} ->
+      foreach (c_directive c err history) directives
+    | S.InputObjectTypeDefinition {directives; fields} ->
+      foreach (c_directive c err history) directives;
+      foreach (c_input_value_definition c err history) fields
+
+  and c_enum_value_definition (c: ctx) (err: exn) (h: hist) (t: S.enum_value_definition) : unit = 
+    foreach (c_directive c err h) t.directives 
+
+  and c_input_value_definition (c: ctx) (err: exn) (h: hist) (t: S.input_value_definition) : unit = 
+    foreach (c_directive c err h) t.directives;
+    c_tpe c err h t.tpe
+
+  and c_field_definition (c: ctx) (err: exn) (h: hist) (d: S.field_definition): unit = 
+    foreach (c_directive c err h) d.directives;
+    foreach (c_input_value_definition c err h) d.arguments;
+    c_tpe c err h d.tpe
+
+  and c_name (c: ctx) (err: exn) ((h1, h2): hist) (n: S.name) : unit =
+    let t = c.find_type n in
+    let exists = List.exists (fun t2 -> t == t2) h2 in
+    if exists then () else c_type_definition c err (h1, h2) t
+
+  and c_tpe (c: ctx) (err: exn) (history: hist) (t: S.tpe) : unit =
+    match t with
+    | S.NonNullType (S.ListType t) -> c_tpe c err history t
+    | S.NonNullType (S.NamedType t) -> c_tpe c err  history (S.NamedType t)
+    | S.ListType t -> c_tpe c err history t
+    | S.NamedType t -> c_name c err history t
+
+
+  and c_directive_definition (c: ctx) (err: exn) (h1, h2: hist) (d: S.directive_definition) : unit =  
+    foreach (c_input_value_definition c err (d::h1, h2)) d.arguments
+
+
+  let tt_directive_definition_2 (c: ctx) (d: S.directive_definition) : unit = 
+    let err = TypeError "A directive definition must not contain the use of a directive which references itself indirectly by referencing a Type or Directive which transitively includes a reference to this directive." in
+    let _ = c_directive_definition c err ([], []) d in
+    ()
 
   let tt_directive_definition_3 (_: ctx) (d: S.directive_definition) : unit = 
     let err = TypeError "The directive must not have a name which begins with the characters \"__\" (two underscores)." in
@@ -1042,8 +1105,7 @@ end = struct
     tt_directive_definition_1 c d;
     tt_directive_definition_2 c d;
     tt_directive_definition_3 c d;
-    tt_directive_definition_4 c d;
-    () (* TODO: Add directive validation *)
+    tt_directive_definition_4 c d
 
   let tt_type_definition ctx d: unit =
     let err = TypeError "The type must not have a name which begins with the characters \"__\" (two underscores)." in

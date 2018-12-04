@@ -19,13 +19,41 @@ let sd t = {definitions = (TypeSystemDefinition (SchemaDefinition t))::[]}
 
 let od t = {definitions = (ExecutableDefinition (OperationDefinition t))::[]}
 
+let fd t = {definitions = (ExecutableDefinition (FragmentDefinition t))::[]}
+
 let () = 
   describe "Schema_parser" (fun () ->  
       describe "ExecutableDefinition" (fun () -> 
           describe "OperationDefinition" (fun () -> 
               testProgram
                 "{ foo: bar }"
-                (od {tpe = Query; name = None; variables = []; directives = []; selectionSet = Field {alias = Some "foo"; name = "bar"; arguments = []; selectionSet = [];directives = [] }::[] })
+                (od {tpe = Query; name = None; variables = []; directives = []; selectionSet = Field {alias = Some "foo"; name = "bar"; arguments = []; selectionSet = [];directives = [] }::[] });
+              testProgram
+                "{ ...on Lol { foo } }"
+                (od {
+                    tpe = Query;
+                    name = None;
+                    variables = []; 
+                    directives = []; 
+                    selectionSet = (InlineFragment {
+                        condition= Some "Lol";
+                        directives = [];
+                        selectionSet = Field {alias = None; name = "foo"; directives = []; arguments = []; selectionSet = []}::[];
+                      })::[] }
+                );
+            );
+          describe "FragmentDefinition" (fun () -> 
+              testProgram
+                "
+                fragment f on A { foo }
+                "
+                (fd {
+                    name = "f";
+                    directives = []; 
+                    condition = "A";
+                    selectionSet = (Field {alias = None; name = "foo"; directives = []; arguments = []; selectionSet = []}::[]);
+                  }
+                );
             );
         );
       describe "TypeSystemDefinition" (fun () ->  
@@ -273,6 +301,7 @@ let () =
                             tpe = NamedType "T"; 
                             directives = []}::[]; 
                           implements = []}));
+
                   testProgram 
                     "
                 type T {

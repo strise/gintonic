@@ -18,7 +18,7 @@ document : transformation+
 A document consists of a non-empty list of `transformation`s
 
 
-# Transformation
+### Transformation
 
 ```
 transformation : type_transformation
@@ -71,7 +71,8 @@ object_type_transformation description? "transform" "type" type_selector fields_
 interface_type_transformation description? "transform" "interface" type_selector fields_transformation?
 ```
 
-All transformations performed on interfaces are propagated to the types implementing the interfaces.
+All transformations performed on interfaces are not automatically propagated to the types implementing the interfaces. 
+You need to make sure that the schema generated is a valid schema.
 
 ### Union type transformation
 

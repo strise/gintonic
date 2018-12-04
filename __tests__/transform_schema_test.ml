@@ -792,6 +792,29 @@ let () =
               f: X
             }
             ";
+          testPrograms 
+            "alias member type"
+            "
+            type F {
+              f: String
+            }
+            union T = F
+            type Query {
+              f: T
+            }
+            "
+            "
+            transform type X: F
+            "
+            "
+            type X {
+              f: String
+            }
+            union T = X
+            type Query {
+              f: T
+            }
+            ";
         );
       describe "enum" (fun () -> 
           testPrograms 

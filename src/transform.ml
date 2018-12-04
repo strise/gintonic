@@ -3,32 +3,6 @@ module T = Trans_ast
 module S = Schema_ast
 
 
-exception Transformation_error of string
-
-type schema_definition = (S.schema_definition * T.schema_transformation)
-
-type directive_definition = S.directive_definition
-
-type type_definition = 
-  | ScalarTypeDefinition of (S.scalar_type_definition * T.scalar_type_transformation)
-  | ObjectTypeDefinition of (S.object_type_definition * T.object_type_transformation)
-  | InterfaceTypeDefinition of (S.interface_type_definition * T.interface_type_transformation)
-  | UnionTypeDefinition of (S.union_type_definition * T.union_type_transformation)
-  | EnumTypeDefinition of (S.enum_type_definition * T.enum_type_transformation)
-  | InputObjectTypeDefinition of (S.input_object_type_definition * T.input_object_type_transformation)
-
-type document = {
-  schema: schema_definition;
-  directives: directive_definition list;
-  types: type_definition list;
-}
-
-type transformation = {
-  t: T.document;
-  s: S.schema_document;
-  d: document
-}
-
 
 let m_operation_type_definition (m: S.operation_type_definition) = match m with
   | {operation = S.Query} -> T.Query
@@ -59,154 +33,187 @@ let td_to_name (td: S.type_definition) =
   | S.ObjectTypeDefinition t -> t.name
   | S.UnionTypeDefinition t -> t.name
 
-let b_document (t: T.document) (s: S.schema_document): document = 
-  let 
-    sts : T.schema_transformation list = 
-    List.fold_right
-      (fun t acc-> 
-         match t with 
-         | T.SchemaTransformation s -> s::acc
-         | _ -> acc
-      ) 
-      t.transformations
-      [] 
-  in
-  let st = match sts with
-    | s::[] -> s
-    | [] -> List.map m_operation_type_definition s.schema.operations
-    | ll -> raise (Transformation_error ("Only a single schema transformation is allowed. Found " ^ (string_of_int (List.length ll))))
-  in
-  let 
-    tps1 = List.map 
-      (fun t -> match t with
-         | S.ScalarTypeDefinition s -> (s.name, ScalarTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}}))
-         | S.ObjectTypeDefinition s -> (s.name, ObjectTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}; fields = []}))
-         | S.InterfaceTypeDefinition s -> (s.name, InterfaceTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}; fields = []}) )
-         | S.UnionTypeDefinition s -> (s.name, UnionTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}}) )
-         | S.EnumTypeDefinition s -> (s.name, EnumTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}; values = []}) )
-         | S.InputObjectTypeDefinition s -> (s.name, InputObjectTypeDefinition (s, {description = None; selector = {alias = None; name = s.name}; fields = []}))
-      ) 
-      s.types
-  in 
-  let 
-    ots : T.type_transformation list = 
-    List.fold_right
-      (fun t acc-> 
-         match t with 
-         | T.TypeTransformation s -> s::acc
-         | _ -> acc
-      ) 
-      t.transformations
-      [] 
-  in
-
-  let 
-    tps2 = List.fold_right
-      (fun t acc->
-         let n = (tt_to_selector t).name in
-         match (Utils.assoc_opt n acc, t) with
-         | (None, _) -> raise (Transformation_error ("Type with the name: " ^ n ^ " wasn't found."))
-         | (Some (ScalarTypeDefinition (d, _)), T.ScalarTypeTransformation t) -> (n, ScalarTypeDefinition (d, t))::acc
-         | (Some (ObjectTypeDefinition (d, _)), T.ObjectTypeTransformation t) -> (n, ObjectTypeDefinition (d, t))::acc
-         | (Some (InterfaceTypeDefinition (d, _)), T.InterfaceTypeTransformation t) -> (n, InterfaceTypeDefinition (d, t))::acc
-         | (Some (UnionTypeDefinition (d, _)), T.UnionTypeTransformation t) -> (n, UnionTypeDefinition (d, t))::acc
-         | (Some (EnumTypeDefinition (d, _)), T.EnumTypeTransformation t) -> (n, EnumTypeDefinition (d, t))::acc
-         | (Some (InputObjectTypeDefinition (d, _)), T.InputObjectTypeTransformation t) -> (n, InputObjectTypeDefinition (d, t))::acc
-         | _ -> raise (Transformation_error ("Transformation type mismatch for: " ^ n))
-      )
-      ots
-      tps1
-  in
-  let 
-    tps3 = Utils.flatten (List.map  (fun n -> Utils.assoc_opt n tps2) (List.map td_to_name s.types))
-  in
-  {schema = s.schema, st; directives = s.directives; types = tps3}
+let m_string_value (tv: T.string_value): S.string_value = match tv with
+  | T.StringValue v -> S.StringValue v
+  | T.BlockStringValue v -> S.BlockStringValue v
 
 
+let rec tv_to_svc (v: T.value): S.vc = 
+  match v with
+  | T.StringValue s -> 
+    S.StringValue (m_string_value s)
+  | T.BooleanValue b -> 
+    S.BooleanValue b
+  | T.IntValue i -> 
+    S.IntValue i
+  | T.FloatValue f -> 
+    S.FloatValue f
+  | T.NullValue -> 
+    S.NullValue
+  | T.EnumValue v -> 
+    S.EnumValue v
+  | T.ListValue vs -> 
+    S.ListValue (List.map tv_to_svc vs)
+  | T.ObjectValue fs -> 
+    S.ObjectValue (List.map tof_to_sof fs)
 
-let transform s t: transformation = {t = t; s = s; d = b_document t s}
+and tof_to_sof (f: T.object_field): S.vc S.object_field = {name = f.name; value = tv_to_svc f.value}
+let starts_with (sub: string) (prefix: string): bool = 
+  if String.length sub < String.length prefix then
+    false
+  else
+    String.sub sub 0 (String.length prefix) = prefix
 
 module Schema : sig
 
-  val s: transformation -> S.schema_document
+  type res = {
+    types: (S.name * S.type_definition) list;
+    fields: ((S.name * S.name) * S.field_definition) list;
+    input_fields: ((S.name * S.name) * S.input_value_definition) list;
+    arguments: ((S.name * S.name * S.name) * S.input_value_definition) list;
+    directive_arguments: ((S.name * S.name) * S.input_value_definition) list;
+    new_fields: ((S.name * S.name) * S.field_definition) list;
+
+    fixed_arguments: ((S.name * S.name) * S.vc S.argument) list;
+    fixed_input_fields: ((S.name) * S.vc S.argument) list;
+  }
+
+  val s: S.schema_document -> T.document -> (S.schema_document * res)
+
 end = struct
 
-  type ctx = { typeAliasLookup: (string * string) list}
+  type res = {
+    types: (S.name * S.type_definition) list;
+    fields: ((S.name * S.name) * S.field_definition) list;
+    input_fields: ((S.name * S.name) * S.input_value_definition) list;
+    arguments: ((S.name * S.name * S.name) * S.input_value_definition) list;
+    directive_arguments: ((S.name * S.name) * S.input_value_definition) list;
+    new_fields: ((S.name * S.name) * S.field_definition) list;
 
-  let build_schema_context (t: transformation) : ctx =
-    let aliases = List.fold_right 
-        (fun t acc -> 
-           match t with 
-           | T.TypeTransformation t -> 
-             let sel = tt_to_selector t in
-             (match sel with
-              | {alias = Some a; name = n} -> (n, a)::acc
-              | _ -> acc
-             )
-           | _ -> acc
-        ) t.t.transformations [] in
-    { typeAliasLookup = aliases }
+    fixed_arguments: ((S.name * S.name) * S.vc S.argument) list;
+    fixed_input_fields: ((S.name) * S.vc S.argument) list;
+  }
 
-  let s_name (c: ctx) (n: S.name): S.name = 
-    match Utils.assoc_opt n c.typeAliasLookup with
-    | Some alias -> alias
-    | _ -> n
+  exception Transformation_error of string
 
-  let m_string_value (tv: T.string_value): S.string_value = match tv with
-    | T.StringValue v -> S.StringValue v
-    | T.BlockStringValue v -> S.BlockStringValue v
+  type ctx = {
+    find_type_alias: S.name -> S.name option;
+    find_type_transformation: S.name -> T.type_transformation option;
+    schema_transformation: T.schema_transformation option;
+    find_object_type_transformation: S.name -> T.object_type_transformation option;
+    find_interface_type_transformation: S.name -> T.interface_type_transformation option;
+    find_scalar_type_transformation: S.name -> T.scalar_type_transformation option;
+    find_enum_type_transformation: S.name -> T.enum_type_transformation option;
+    find_union_type_transformation: S.name -> T.union_type_transformation option;
+    find_input_object_type_transformation: S.name -> T.input_object_type_transformation option;
+  }
 
-  let rec s_tpe c (t: S.tpe) : S.tpe= 
+  let listify (f: 'a * res -> 'a * res): 'a -> 'a list * res ->  'a list * res =
+    fun a -> fun (ls, r) -> (
+        let a, r = f (a, r) in
+        a::ls, r
+      )
+
+  let s_name (c: ctx) ((n, r): S.name * res): S.name * res = 
+    match c.find_type_alias n with
+    | Some alias -> (alias, r)
+    | _ -> (n, r)
+
+
+
+
+  let rec s_tpe c ((t, r): S.tpe * res) : S.tpe * res= 
     match t with
-    | S.NamedType t -> S.NamedType (s_name c t)
-    | S.ListType t -> S.ListType (s_tpe c t)
-    | S.NonNullType t -> S.NonNullType (s_nnt c t)
+    | S.NamedType t -> let n, r = s_name c (t, r) in S.NamedType n, r
+    | S.ListType t -> let t, r = s_tpe c (t, r) in S.ListType t, r
+    | S.NonNullType t -> let t, r = s_nnt c (t, r) in S.NonNullType t, r
 
-  and s_nnt c (t: S.non_null_type) : S.non_null_type =
+  and s_nnt c ((t, r): S.non_null_type * res) : S.non_null_type * res =
     match t with
-    | S.ListType t -> S.ListType (s_tpe c t)
-    | S.NamedType t -> S.NamedType (s_name c t)
+    | S.ListType t -> let t, r = (s_tpe c (t, r)) in S.ListType t, r
+    | S.NamedType t -> let t, r = (s_name c (t, r)) in S.NamedType t, r
 
 
-  let s_operation_type_definition c (d: S.operation_type_definition) : S.operation_type_definition= 
-    {d with tpe = s_name c d.tpe}
+  let s_operation_type_definition c ((d, r): S.operation_type_definition * res) : S.operation_type_definition * res= 
+    let n, r = s_name c (d.tpe, r) in
+    {d with tpe = n}, r
 
 
-  let s_schema_definition (c: ctx) (s: schema_definition) = match s with
-    | (p1, []) -> p1
-    | (p1, p2) -> 
+  let s_schema_definition (c: ctx) ((s, r): S.schema_definition * res): (S.schema_definition * res) = 
+    match (s, c.schema_transformation) with
+    | (p1, None) -> 
+      let ops, r = 
+        List.fold_right
+          (listify (s_operation_type_definition c))
+          p1.operations
+          ([], r)
+      in
+      {
+        p1 with
+        operations = ops
+      }, r
+    | (p1, Some p2) -> 
       let ops = List.map (fun (o: S.operation_type_definition) -> (o.operation, o)) p1.operations in
-      {p1 with operations = List.map (fun o -> 
-           match Utils.assoc_opt (m_operation_type o) ops with
-           | Some r -> s_operation_type_definition c r
-           | None -> raise (Transformation_error "Operation not found")
-         ) p2}
+      let ops, r = 
+        List.fold_right 
+          (fun t (opps , res) -> 
+             match Utils.assoc_opt (m_operation_type t) ops with
+             | Some r -> 
+               let op, res = s_operation_type_definition c (r, res) in
+               (op::opps, res)
+             | None -> raise (Transformation_error "Operation not found")
+          )
+          p2
+          ([], r)
+      in
+      {
+        p1 with 
+        operations = ops
+      }, r
 
 
-  let s_input_value_definition (c: ctx) (d: S.input_value_definition) (t: T.input_value): S.input_value_definition = 
+  let s_input_value_definition (c: ctx) (t: T.input_value) ((d, r): S.input_value_definition * res): S.input_value_definition * res = 
     let 
       desced = match t.description with
       | Some desc -> {d with description = Some (m_string_value desc)}
       | None -> d
     in
-    {desced with tpe = s_tpe c desced.tpe }
+    let t, r = s_tpe c (desced.tpe, r) in
+    {desced with tpe = t }, r
 
-  let s_input_values_definition (c: ctx) (ds: S.input_value_definition list) (ts: T.input_value list): S.input_value_definition list = 
+  let s_input_values_definition (c: ctx) (upd1: S.vc S.argument -> res -> res) (upd2: S.input_value_definition -> res -> res) (ts: T.input_value list) ((ds, r): S.input_value_definition list * res): S.input_value_definition list * res = 
     let 
       args = List.map (fun (v: T.input_value) -> (v.name, v)) ts
     in
     List.fold_right 
-      (fun (d: S.input_value_definition) acc -> 
+      (fun (d: S.input_value_definition) (ds, r) -> 
          match Utils.assoc_opt d.name args with
-         | Some {value = Some _} -> acc
-         | Some t -> (s_input_value_definition c d t)::acc
-         | _ -> {d with tpe = s_tpe c d.tpe }::acc
-      ) ds []
+         | Some {value = Some v; name} -> (ds, upd1 {name = name; value = tv_to_svc v} r)
+         | Some t -> (
+             let d, r = s_input_value_definition c t (d, r) in
+             (d::ds, upd2 d r )
+           )
+         | _ -> (
+             let t, r = s_tpe c (d.tpe, r) in
+             (({d with tpe = t })::ds, upd2 d r) 
+           )
+      ) 
+      ds
+      ([], r) 
 
-  let s_directive_definition (c: ctx) (d: directive_definition): S.directive_definition = 
-    {d with arguments = s_input_values_definition c d.arguments []}
+  let s_directive_definition (c: ctx) ((d, r): S.directive_definition * res) = 
+    let args, r = s_input_values_definition 
+        c 
+        (fun _ -> Utils.identity)
+        (fun a res -> {res with directive_arguments = ((d.name, a.name), a)::res.directive_arguments})
+        []
+        (d.arguments,r)
+    in
+    ({d with arguments = args}, r)
 
-  let s_field_definition (c: ctx) (fd: S.field_definition) (ft: T.field_transformation): S.field_definition =
+  let fd_arg_updater tn fn arg r = {r with fixed_arguments = ((tn, fn), arg)::r.fixed_arguments}
+
+  let s_field_definition (c: ctx) (tn: S.name) (ft: T.field_transformation) ((fd, r): S.field_definition * res): S.field_definition * res =
     let named = 
       match ft with
       | {selector = {alias = Some a}} -> {fd with name = a}
@@ -217,140 +224,315 @@ end = struct
       | {description = Some s} -> {named with description = Some (m_string_value s)}
       | _ -> named
     in
-    {described with arguments = s_input_values_definition c named.arguments ft.arguments; tpe = s_tpe c described.tpe}
+    let args, r = 
+      s_input_values_definition 
+        c 
+        (fd_arg_updater tn described.name) 
+        (fun a res -> {res with arguments = ((tn, described.name, a.name), a)::res.arguments} )
+        ft.arguments 
+        (named.arguments, r)
+    in
+    let t, r = s_tpe c (described.tpe, r) in
+    let fd2 = {described with arguments = args; tpe = t} in
+    fd2, 
+    {r with 
+     fields = ((tn, fd2.name), fd)::r.fields;
+     new_fields = ((tn, fd2.name), fd2)::r.new_fields
+    }
 
-  let s_fields_definition (c: ctx) (fds: S.field_definition list) (fts: T.field_transformation list): S.field_definition list = 
+  let s_fields_definition_no_trans c (tn: S.name) (f, r: S.field_definition * res): S.field_definition * res =
+    let vs, r = 
+      s_input_values_definition 
+        c 
+        (fd_arg_updater tn f.name) 
+        (fun a res -> {res with arguments = ((tn, f.name, a.name), a)::res.arguments} )
+        [] 
+        (f.arguments, r)
+    in
+    let t, r = s_tpe c (f.tpe, r) in
+    let fd2 = {f with tpe = t; arguments = vs } in
+    fd2, 
+    {r with 
+     fields = ((tn, f.name),f)::r.fields; 
+     new_fields = ((tn, fd2.name), fd2)::r.new_fields
+    }
 
+  let s_fields_definition_trans c (tn: S.name) (fts: T.field_transformation list) (fs, r: S.field_definition list * res)  : S.field_definition list * res =
+    let fieldsAssoc = List.map (fun (def: S.field_definition) -> (def.name, def)) fs in
+    List.fold_right
+      (fun (ft: T.field_transformation) (fds, r) -> 
+         match Utils.assoc_opt ft.selector.name fieldsAssoc with
+         | Some fd -> 
+           let fd, r = s_field_definition c tn ft(fd, r) in
+           fd::fds, r
+         | None -> raise (Transformation_error ("Field with name: " ^ ft.selector.name ^ " not found."))
+      )
+      fts
+      ([], r)
+
+  let s_fields_definition (c: ctx) (tn: S.name) (fts: T.field_transformation list) ((fds, r): S.field_definition list * res): S.field_definition list * res = 
     match fts with
-    | [] -> 
-      List.map (fun (d: S.field_definition) -> {d with tpe = s_tpe c d.tpe; arguments = s_input_values_definition c d.arguments []}) fds
-    | fts -> 
-      let fieldsAssoc = List.map (fun (def: S.field_definition) -> (def.name, def)) fds in
-      let mapper (ft: T.field_transformation): S.field_definition =
-        match Utils.assoc_opt ft.selector.name fieldsAssoc with
-        | Some fd -> s_field_definition c fd ft
-        | None -> raise (Transformation_error ("Field with name: " ^ ft.selector.name ^ " not found."))
-      in
-      List.map mapper fts
+    | [] -> List.fold_right (listify (s_fields_definition_no_trans c tn)) fds ([], r) 
+    | fts -> s_fields_definition_trans c tn fts (fds, r) 
 
 
-  let s_object_type_definition (c: ctx) (d : S.object_type_definition) (t: T.object_type_transformation): S.object_type_definition = 
+  let s_object_type_definition (c: ctx) ((d, r) : S.object_type_definition * res): S.object_type_definition * res = 
+    let t = c.find_object_type_transformation d.name in
     let desced = 
-      match t.description with
-      | Some desc -> {d with description = Some (m_string_value desc)}
+      match t with
+      | Some {description = Some desc} -> {d with description = Some (m_string_value desc)}
       | _ -> d
     in
-    { desced with
-      name = s_name c desced.name;
-      implements = List.map (s_name c) desced.implements;
-      fields = s_fields_definition c d.fields t.fields
-    }
-
-  let s_interface_type_definition (c: ctx) (d : S.interface_type_definition) (t: T.interface_type_transformation): S.interface_type_definition = 
-    let 
-      fielded = {d with fields = s_fields_definition c d.fields t.fields }
+    let fts = 
+      match t with
+      | Some {fields} -> fields
+      | None -> []
     in
-    let desced = 
-      match t.description with
-      | Some d -> {fielded with description = Some (m_string_value d)}
-      | _ -> fielded
-    in
+    let n, r = s_name c (desced.name, r) in
+    let implemenets, r = List.fold_right (listify (s_name c)) desced.implements ([], r) in
+    let fds, r = s_fields_definition c n fts (d.fields, r) in
     { desced with
-      name = s_name c desced.name;
-      fields = s_fields_definition c d.fields t.fields
-    }
+      name = n;
+      implements = implemenets;
+      fields = fds
+    }, r
 
-
-  let s_scalar_type_definition c (p1: S.scalar_type_definition) (p2: T.scalar_type_transformation) = 
+  let s_interface_type_definition (c: ctx) ((d, r) : S.interface_type_definition * res): S.interface_type_definition * res = 
+    let t = c.find_interface_type_transformation d.name in
+    let fields = match t with | Some {fields} -> fields | _ -> [] in
     let desced = 
-      match p2 with
-      | {description = Some d} -> {p1 with description = Some (m_string_value d)}
+      match t with
+      | Some {description = Some desc} -> {d with description = Some (m_string_value desc)}
+      | _ -> d
+    in
+    let n, r = s_name c (desced.name, r) in
+    let fds, r = s_fields_definition c n fields (d.fields, r) in
+    { 
+      desced with
+      name = n;
+      fields = fds
+    }, r
+
+
+  let s_scalar_type_definition c ((p1, r): S.scalar_type_definition * res): (S.scalar_type_definition * res) = 
+    let t = c.find_scalar_type_transformation p1.name in
+    let desced = 
+      match t with
+      | Some {description = Some d} -> {p1 with description = Some (m_string_value d)}
       | _ -> p1
     in
-    {desced with name = s_name c p1.name}
+    let (n, r2) = s_name c (p1.name, r) in
+    {desced with name = n}, r2
 
 
-  let s_union_type_definition c (p1: S.union_type_definition) (p2: T.union_type_transformation) = 
+  let s_union_type_definition c ((p1, r): S.union_type_definition * res) = 
+    let p2 = c.find_union_type_transformation p1.name in
     let described = 
       match p2 with
-      | {description = Some d} -> {p1 with description = Some (m_string_value d)}
+      | Some {description = Some d} -> {p1 with description = Some (m_string_value d)}
       | _ -> p1
     in 
-    {described with name = s_name c p1.name}
+    let (n, r) = s_name c (p1.name, r) in
+    let types, r = List.fold_right (listify (s_name c)) p1.types ([], r) in
+    {described with name = n; types = types}, r
 
 
-  let s_enum_value_definition _ (d: S.enum_value_definition ) (t: T.enum_value_transformation ): S.enum_value_definition  = 
-    let 
-      desced = match t.description with
-      | Some desc -> {d with description = Some (m_string_value desc)}
-      | None -> d
-    in 
-    desced 
-  let s_enum_values_definition c (ds: S.enum_value_definition list) (ts: T.enum_value_transformation list): S.enum_value_definition list = 
+  let s_enum_value_definition _ (t: T.enum_value_transformation ) ((d, r): S.enum_value_definition * res): S.enum_value_definition * res  = 
+    match t.description with
+    | Some desc -> ({d with description = Some (m_string_value desc)}, r)
+    | None -> (d, r)
 
+  let s_enum_values_definition c (ds: S.enum_value_definition list) ((ts, r): T.enum_value_transformation list * res): S.enum_value_definition list * res = 
     let trans = List.map (fun (d: T.enum_value_transformation) -> (d.value, d)) ts in
-    List.map
-      (fun (d: S.enum_value_definition)-> 
+    List.fold_right
+      (fun (d: S.enum_value_definition) (ds, r)-> 
          match Utils.assoc_opt d.value trans with
-         | Some t -> s_enum_value_definition c d t
-         | None -> d
+         | Some t -> 
+           let (d, r2) = s_enum_value_definition c t (d, r) in
+           (d::ds, r2)
+         | None -> (d::ds, r)
       )
       ds
+      ([], r)
 
-  let s_enum_type_definition c (d: S.enum_type_definition) (t: T.enum_type_transformation): S.enum_type_definition =
+  let s_enum_type_definition c ((d, r): S.enum_type_definition * res): S.enum_type_definition * res =
+    let t = c.find_enum_type_transformation d.name in
     let described = 
       match t with
-      | {description = Some desc} -> {d with description = Some (m_string_value desc)}
+      | Some {description = Some desc} -> {d with description = Some (m_string_value desc)}
       | _ -> d
     in 
-
+    let values = match t with | Some {values} -> values | _ -> [] in
+    let (n, r2) = s_name c (d.name, r) in
+    let (vs, r3) = s_enum_values_definition c d.values (values, r2) in
     {
       described with
-      name = s_name c d.name;
-      values = s_enum_values_definition c d.values t.values
-    }
+      name = n;
+      values = vs
+    }, r3
 
-  let s_input_object_type_definition c (d: S.input_object_type_definition) (t: T.input_object_type_transformation): S.input_object_type_definition = 
+  let iotd_upd tn c r = {r with fixed_input_fields = (tn, c)::r.fixed_input_fields} 
+
+  let s_input_object_type_definition c ((d, r): S.input_object_type_definition * res): S.input_object_type_definition * res= 
+    let t = c.find_input_object_type_transformation d.name in
     let described = 
       match t with
-      | {description = Some desc} -> {d with description = Some (m_string_value desc)}
+      | Some {description = Some desc} -> {d with description = Some (m_string_value desc)}
       | _ -> d
     in 
-
+    let fields = match t with | Some {fields} -> fields | _ -> [] in
+    let n, r = s_name c (d.name, r) in
+    let fs, r = 
+      s_input_values_definition 
+        c 
+        (iotd_upd n) 
+        (fun a r -> {r with input_fields = ((n, a.name), a)::r.input_fields})
+        fields 
+        (d.fields, r)
+    in 
     {
       described with
-      name = s_name c d.name;
-      fields = s_input_values_definition c d.fields t.fields
-    }
+      name = n;
+      fields = fs
+    }, r
 
 
-  let s_type_definition (c: ctx) (d: type_definition) = match d with
-    | ScalarTypeDefinition (p1, p2) -> S.ScalarTypeDefinition (s_scalar_type_definition c p1 p2)
-    | ObjectTypeDefinition (p1, p2) -> S.ObjectTypeDefinition (s_object_type_definition c p1 p2)
-    | InterfaceTypeDefinition (p1, p2) -> S.InterfaceTypeDefinition (s_interface_type_definition c p1 p2)
-    | UnionTypeDefinition (p1, p2) -> S.UnionTypeDefinition (s_union_type_definition c p1 p2)
-    | EnumTypeDefinition (p1, p2) -> S.EnumTypeDefinition (s_enum_type_definition c p1 p2)
-    | InputObjectTypeDefinition (p1, p2) -> S.InputObjectTypeDefinition (s_input_object_type_definition c p1 p2)
+  let s_type_definition (c: ctx) ((d, r): S.type_definition * res) = 
+    match d with
+    | S.ScalarTypeDefinition p1 -> 
+      let (s, res) = s_scalar_type_definition c (p1, r) in    
+      (S.ScalarTypeDefinition s, {res with types = (s.name, d)::res.types})
+    | S.ObjectTypeDefinition p1 -> 
+      let (s, res) = s_object_type_definition c (p1, r) in
+      (S.ObjectTypeDefinition s, {res with types = (s.name, d)::res.types})
+    | S.InterfaceTypeDefinition p1 -> 
+      let (s, res) = s_interface_type_definition c (p1, r) in
+      (S.InterfaceTypeDefinition s, {res with types = (s.name, d)::res.types})
+    | S.UnionTypeDefinition p1 -> 
+      let (s, res) = s_union_type_definition c (p1, r) in
+      (S.UnionTypeDefinition s, {res with types = (s.name, d)::res.types})
+    | S.EnumTypeDefinition p1 -> 
+      let (s, res) = s_enum_type_definition c (p1, r) in
+      (S.EnumTypeDefinition s, {res with types = (s.name, d)::res.types})
+    | S.InputObjectTypeDefinition p1 -> 
+      let (s, res) = s_input_object_type_definition c (p1, r) in
+      (S.InputObjectTypeDefinition s, {res with types = (s.name, d)::res.types})
 
-  let s_document (c: ctx) (d: document): S.schema_document = 
-    let schema: S.schema_definition = s_schema_definition c d.schema
+  let s_schema_document (c: ctx) ((d, r1): S.schema_document * res): (S.schema_document * res) = 
+
+    let 
+      (schema, r2) = s_schema_definition c (d.schema, r1)
     in
     let
-      types: S.type_definition list = 
-      List.map (s_type_definition c) d.types
+      (types, r3) = 
+      List.fold_right (listify (s_type_definition c)) d.types ([], r2)
     in
     let
-      directives: S.directive_definition list = 
-      List.map (s_directive_definition c) d.directives
+      (directives, r4) = 
+      List.fold_right (listify (s_directive_definition c)) d.directives ([], r3)
     in
-    {
-      schema = schema;
-      directives = directives;
-      types = types
+    (
+      {
+        schema = schema;
+        directives = directives;
+        types = types
+      },
+      r4
+    )
+
+  let find_generator (m: 'a -> 'b) (l: (string * 'a ) list) (n: string): 'b option =
+    (match Utils.assoc_opt n l
+     with
+     | Some t -> Some (m t)
+     | None -> None
+    )
+  let s (s: S.schema_document) (t: T.document): (S.schema_document * res) =
+    let (schema, types) = 
+      List.fold_right 
+        (fun c (s, ts) -> 
+           match c with
+           | T.SchemaTransformation s -> (Some s, ts)
+           | T.TypeTransformation t -> (s, ((tt_to_selector t).name, t)::ts)
+        )
+        t.transformations
+        (None, [])
+    in
+    let err = Transformation_error "Transformation type mismatch" in
+    let ctx = 
+      {
+        find_interface_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.InterfaceTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_object_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.ObjectTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_input_object_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.InputObjectTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_scalar_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.ScalarTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_union_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.UnionTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_enum_type_transformation = 
+          (find_generator 
+             (fun v -> match v with
+                | T.EnumTypeTransformation t -> t
+                | _ -> raise err
+             )
+             types);
+        find_type_alias = (fun n -> 
+            match 
+              Utils.assoc_opt
+                n 
+                types
+            with 
+            | Some t -> (tt_to_selector t).alias
+            | None -> None
+          );
+        find_type_transformation = (fun n -> 
+            Utils.assoc_opt
+              n
+              types
+          );
+        schema_transformation  =  schema
+      }
+    in
+
+    let 
+      r = {
+      types = [];
+      fields = [];
+      input_fields = [];
+      directive_arguments = [];
+      new_fields = [];
+      arguments = [];
+      fixed_arguments = [];
+      fixed_input_fields = [];
     }
-
-
-  let s t =   s_document (build_schema_context t) t.d 
+    in
+    s_schema_document ctx (s,r)
 
 end
 
@@ -358,6 +540,9 @@ module Correct : sig
   val c : S.schema_document -> S.schema_document
 end = 
 struct
+
+  exception Correction_error of string
+
   type ctx = {
     inputs: (string  * S.input_object_type_definition) list;
     dirArgs: ((string * string) * S.tpe) list;
@@ -374,7 +559,7 @@ struct
     let 
       f (s1 : string) (s2: string) = match Utils.assoc_opt (s1, s2) c.dirArgs with
       | Some t -> m t
-      | None -> raise (Transformation_error ("Failed to find directive with name " ^ s1 ^ " and argument " ^ s2)) 
+      | None -> raise (Correction_error ("Failed to find directive with name " ^ s1 ^ " and argument " ^ s2)) 
     in 
     {
       d with
@@ -519,7 +704,7 @@ struct
 
 end
 
-module ShakeIt: sig
+module ShakeIt: sig 
   val c: S.schema_document -> S.schema_document
 end = struct
   type ctx = {
@@ -721,11 +906,6 @@ end = struct
     then ()
     else raise e
 
-  let starts_with (sub: string) (prefix: string): bool = 
-    if String.length sub < String.length prefix then
-      false
-    else
-      String.sub sub 0 (String.length prefix) = prefix
 
   let tt_object_type_defnition_2_1 (_: ctx) (s: S.object_type_definition): unit = 
     let err = TypeError "The field must have a unique name within that Object type; no two fields may share the same name." in
@@ -1180,12 +1360,230 @@ end
 
 
 
-let (>=): S.schema_document -> (S.schema_document -> S.schema_document) -> S.schema_document = fun s -> fun m -> m s
+let (>-): S.schema_document -> (S.schema_document -> S.schema_document) -> S.schema_document = fun s -> fun m -> m s
 
-let schema (t: transformation) : S.schema_document =  
-  Schema.s t
-  >= Correct.c
-  >= ShakeIt.c
-  >= TypeCheck.c
+type transformation = {
+  t: T.document;
+  os: S.schema_document;
+  tr: Schema.res;
+  ts: S.schema_document;
+}
 
-let executable: transformation -> Schema_ast.executable_document -> Schema_ast.executable_document = fun _ -> Utils.identity
+let schema (t: transformation) : S.schema_document =  t.ts
+
+let transform s t: transformation = (
+  let 
+    (schema, r) = Schema.s s t 
+  in
+  {
+    t = t;
+    os = s;
+    tr = r;
+    ts = schema >- Correct.c >- ShakeIt.c >- TypeCheck.c 
+  }
+)
+
+
+module Exec: sig
+  val c: transformation -> Schema_ast.executable_document -> Schema_ast.executable_document
+end = struct
+  exception Transformation_error of string
+
+  type ctx = { 
+    find_operation: S.operation_type -> S.operation_type_definition; 
+    find_type: S.name -> S.type_definition;
+    find_field: S.name -> S.name -> S.field_definition;
+    find_directive_argument: S.name -> S.name -> S.input_value_definition;
+    find_input_field: S.name -> S.name -> S.input_value_definition;
+    find_field_argument: S.name -> S.name -> S.name -> S.input_value_definition;
+    find_new_field: S.name -> S.name -> S.field_definition;
+    find_fixed_arguments: S.name -> S.name -> S.vc S.argument list;
+    find_fixed_field: S.name -> S.vc S.argument list;
+  }
+
+  let rec t_value (c: ctx) (t: S.tpe) (v: S.v): S.v = 
+    match t, v with
+    | (S.ListType t, S.ListValue vs) -> S.ListValue (List.map (t_value c t) vs)
+    | (S.ListType t, v) -> t_value c t v
+    | (S.NonNullType (S.NamedType n), v) -> t_value c (S.NamedType n) v
+    | (S.NonNullType (S.ListType t), v) -> t_value c (S.ListType t) v
+    | (S.NamedType n, S.ObjectValue fs) -> 
+      ( match c.find_type n with
+        | S.InputObjectTypeDefinition o -> S.ObjectValue (t_object_fields c o fs)
+        | _ -> v
+      )
+    | _ -> v
+
+  and t_object_fields (c: ctx) (o: S.input_object_type_definition) (fs: S.v S.object_field list): S.v S.object_field list = 
+    List.concat (
+      (List.map (t_object_field c (fun n -> c.find_input_field o.name n)) fs)
+      ::(List.map (fun (a: S.vc S.argument) -> S.a_to_of (S.map_a a S.vc_to_v)) (c.find_fixed_field o.name))
+      ::[]
+    )
+
+  and t_object_field (c: ctx) (l: S.name -> S.input_value_definition) (f: S.v S.object_field): S.v S.object_field = 
+    let d = l f.name in
+    let v = t_value c d.tpe f.value in
+    {f with value = v}
+
+
+  let t_argument (c: ctx) (l : S.name -> S.input_value_definition) (a: S.v S.argument) : S.v S.argument = 
+    let d = l a.name in
+    {
+      a with
+      value = t_value c d.tpe a.value
+    }
+
+  let t_directive (c: ctx) (d: S.v S.directive): S.v S.directive = 
+    {d with arguments = List.map (t_argument c (c.find_directive_argument d.name)) d.arguments}
+
+  let t_fragment_spread (c: ctx) (f: S.fragment_spread) : S.fragment_spread = 
+    {f with directives = List.map (t_directive c) f.directives}
+
+  let rec tpe_to_name (t: S.tpe) =
+    match t with
+    | S.NamedType n -> n
+    | S.ListType t -> tpe_to_name t
+    | S.NonNullType (S.NamedType n) -> n
+    | S.NonNullType (S.ListType t) -> tpe_to_name (S.ListType t)
+
+  let rec t_field (c: ctx) (t: S.name) (f: S.field): S.field =
+    let fd = c.find_field t f.name in
+    let nfd = c.find_new_field t f.name in
+    let (name, alias) = f.name, f.alias in
+    let (name, alias) = (fd.name, match alias with | Some a -> a | None -> name) in
+    let alias = if name = alias then None else Some alias in
+    let orig_args = List.map (t_argument c (c.find_field_argument t f.name)) f.arguments in
+    let args = c.find_fixed_arguments t f.name in
+    let args: S.v S.argument list = List.map (fun (a: S.vc S.argument) -> {a with value = S.vc_to_v a.value}) args in
+    let directives = List.map (t_directive c) f.directives in
+    {
+      name = fd.name;
+      alias = alias; 
+      arguments = List.concat (orig_args::args::[]);
+      directives = directives;
+      selectionSet = t_selection_set c (tpe_to_name nfd.tpe) f.selectionSet;
+    }
+
+  and t_inline_fragment (c: ctx) (t: S.name) (f: S.inline_fragment) : S.inline_fragment = 
+    let condition = Utils.opt_map (fun n -> td_to_name (c.find_type n)) f.condition in
+    let selections = t_selection_set c (match f.condition with | Some c -> c | None -> t) f.selectionSet in
+    {
+      condition = condition;
+      selectionSet = selections;
+      directives = List.map (t_directive c) f.directives
+    }
+
+
+  and t_selection (c: ctx) (t: S.name) (s: S.selection) (acc: S.selection list): S.selection list =
+    match s with
+    | S.Field f -> if starts_with f.name "__" then acc else (S.Field (t_field c t f))::acc
+    | S.InlineFragment f -> (S.InlineFragment (t_inline_fragment c t f))::acc
+    | S.FragmentSpread f -> (S.FragmentSpread (t_fragment_spread c f))::acc
+
+  and t_selection_set (c: ctx) (t: S.name) (o: S.selection list): S.selection list = 
+    List.fold_right (t_selection c t ) o []
+
+  let t_operation (c: ctx) (o: S.operation_definition): S.operation_definition = 
+    let t = (c.find_operation o.tpe).tpe in
+    {
+      o with 
+      selectionSet = t_selection_set c t o.selectionSet;
+      directives = List.map (t_directive c) o.directives
+    }
+
+
+  let t_fragment (c: ctx) (f: S.fragment_definition): S.fragment_definition =
+    { f with
+      directives = List.map (t_directive c) f.directives;
+      condition = td_to_name (c.find_type f.condition)
+    }
+
+  let t_fragments (c: ctx) (fs: S.fragment_definition list): S.fragment_definition list = 
+    List.map (t_fragment c) fs
+
+  let c (t: transformation) (e: S.executable_document): S.executable_document  = 
+    let c = {
+      find_type = 
+        (fun n -> 
+           try List.assoc n t.tr.types
+           with Not_found -> raise (Transformation_error ("Failed to fetch type: " ^ n) )
+        );
+      find_operation = 
+        (fun o -> (
+             match 
+               Utils.find_opt
+                 (fun ({operation}: S.operation_type_definition) -> operation = o)
+                 t.os.schema.operations
+             with
+             | Some t -> t
+             | None -> raise (Transformation_error "Failed to find operation")
+           ));
+      find_field = (
+        (fun o f -> 
+           try List.assoc (o, f) t.tr.fields 
+           with Not_found -> raise (Transformation_error ("Failed to find field: " ^ (o) ^ "." ^ f) )
+        )
+      );
+      find_new_field = (
+        (fun o f -> 
+           try List.assoc (o, f) t.tr.new_fields
+           with Not_found -> raise (Transformation_error ("Failed to find field type: " ^ (o) ^ "." ^ f) )
+        )
+      );
+      find_input_field = (
+        (fun o f -> 
+           try List.assoc (o, f) t.tr.input_fields 
+           with Not_found -> raise (Transformation_error ("Failed to find field: " ^ (o) ^ "." ^ f) )
+        )
+      );
+      find_field_argument = (
+        (fun o f a -> 
+           try List.assoc (o, f, a) t.tr.arguments
+           with Not_found -> raise (Transformation_error ("Failed to find argument: " ^ (o) ^ "." ^ f ^ "." ^ a) )
+        )
+      );
+      find_directive_argument = (
+        (fun d f -> 
+           try List.assoc (d, f) t.tr.directive_arguments
+           with Not_found -> raise (Transformation_error ("Failed to find directive argument: " ^ (d) ^ "." ^ f ) )
+        )
+      );
+      find_fixed_arguments = (
+        (fun o f -> 
+           let
+             filtered = 
+             List.filter 
+               (fun ((o1, f1), _) -> o1 = o && f1 = f) 
+               t.tr.fixed_arguments 
+           in
+           List.map (fun (_, v)  ->v) filtered
+        )
+      );
+      find_fixed_field = (
+        (fun o -> 
+           let
+             filtered = 
+             List.filter 
+               (fun (o1, _) -> o1 = o) 
+               t.tr.fixed_input_fields 
+           in
+           List.map (fun (_, v)  ->v) filtered
+        )
+      )
+    } 
+    in
+    {
+      operation = 
+        t_operation
+          c
+          e.operation; 
+      fragments = 
+        t_fragments 
+          c
+          e.fragments
+    }
+
+end
+
+let executable = Exec.c

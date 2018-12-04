@@ -48,6 +48,8 @@ rule read =
     | '&'           { AMPERSAND }
     | '!'           { EXCLAMATION }
 
+    | "..."         { SPREAD }
+
     | '{'           { L_BRACKET }
     | '}'           { R_BRACKET }
     | '['           { L_SQ_BRACKET }
@@ -60,6 +62,7 @@ rule read =
     | "null"        { NULL }
 
     | "on"                              { ON }
+    | "fragment"                        { FRAGMENT }
     | "schema"                          { SCHEMA }
     | "type"                            { TYPE }
     | "enum"                            { ENUM }

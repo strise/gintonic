@@ -46,6 +46,17 @@ type value =
 
 type v = value
 
+let rec vc_to_v (v: vc): v = 
+  match v with
+  | IntValue v -> IntValue v
+  | FloatValue f -> FloatValue f
+  | StringValue s -> StringValue s
+  | BooleanValue b -> BooleanValue b
+  | NullValue -> NullValue
+  | EnumValue e -> EnumValue e
+  | ListValue ls -> ListValue (List.map vc_to_v ls)
+  | ObjectValue fs -> ObjectValue (List.map (fun f -> {name = f.name; value = vc_to_v f.value})fs)
+
 type list_type = tpe
 
 and tpe = 
@@ -87,6 +98,10 @@ type 'a argument = {
   name: name;
   value: 'a;
 }
+
+let map_a (a: 'a argument) (m: 'a -> 'b): 'b argument = {a with value = m(a.value)}
+
+let a_to_of (a: 'a argument): 'a object_field = {name = a.name; value = a.value}
 
 type 'a directive = {
   name: name;

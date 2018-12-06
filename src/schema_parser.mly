@@ -188,11 +188,11 @@ schema_extension:
     SCHEMA
     ds = directives
     ops = schema_extension_rest?
-    {{directives = ds; definitions = flat ops}}
+    {let t: schema_extension = {directives = ds; operations = flat ops} in t}
   | EXTEND
     SCHEMA
     ops = schema_extension_rest
-    {{directives = []; definitions = ops}}
+    {let t: schema_extension = {directives = []; operations = ops} in t}
 
 type_extension:
   | s = scalar_type_extension 
@@ -319,7 +319,7 @@ schema_definition:
     L_BRACKET
     rotds = opreation_type_definition+
     R_BRACKET
-    { { directives = flat ds; operations = rotds } }
+    {let t: schema_definition = { directives = flat ds; operations = rotds } in t}
 
 opreation_type_definition:
   op = operation_type

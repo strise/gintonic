@@ -15,7 +15,10 @@ let parseTS(s: string) = parseT (Lexing.from_string s)
 
 let testPrograms n (p1: string) (t: string) (p2: string): unit =
   test n (
-    fun () -> expect (Transform.schema (Transform.transform (parseSS p1) (parseTS t))) |> toEqual (parseSS p2)
+    fun () ->
+      expect 
+        (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p1) (parseTS t)))) 
+      |> toEqual (Js_utils.schema_document_to_js (parseSS p2))
   )
 
 let () =

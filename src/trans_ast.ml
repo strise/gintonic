@@ -111,3 +111,4 @@ type transformation =
   | SchemaTransformation of schema_transformation
 
 type document = {transformations: transformation list}
+

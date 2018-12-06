@@ -4,11 +4,6 @@ module S = Schema_ast
 
 
 
-let m_operation_type_definition (m: S.operation_type_definition) = match m with
-  | {operation = S.Query} -> T.Query
-  | {operation = S.Mutation} -> T.Mutation
-  | {operation = S.Subscription} -> T.Subscription
-
 let m_operation_type (m: T.operation_type) = match m with
   | T.Query -> S.Query
   | T.Mutation -> S.Mutation

@@ -55,6 +55,9 @@
   "bs-dev-dependencies": [
     "@glennsl/bs-jest"
   ],
+  "bs-dependencies": [
+    "@glennsl/bs-json"
+  ],
   "warnings": {
     "error": "+101"
   },

@@ -77,6 +77,15 @@ type executable_directive_location =
   | FragmentSpread
   | InlineFragment
 
+let executable_directive_location_to_name l = match l with
+  | Query -> "QUERY"
+  | Mutation -> "MUTATION"
+  | Subscription -> "SUBSCRIPTION"
+  | Field -> "FIELD"
+  | FragmentDefinition -> "FRAGMENT_DEFINITION"
+  | FragmentSpread -> "FRAGMENT_SPREAD"
+  | InlineFragment -> "INLINE_FRAGMENT"
+
 type type_system_directive_location = 
   | Schema
   | Scalar
@@ -89,6 +98,19 @@ type type_system_directive_location =
   | EnumValue
   | InputObject
   | InputFieldDefinition
+
+let type_system_directive_location_to_name t : name = match t with
+  | Schema -> "SCHEMA"
+  | Scalar -> "SCALAR"
+  | Object -> "OBJECT"
+  | FieldDefinition -> "FIELD_DEFINITION"
+  | ArgumentDefinition -> "ARGUMENT_DEFINITION"
+  | Interface -> "INTERFACE"
+  | Union -> "UNION"
+  | Enum -> "ENUM"
+  | EnumValue -> "ENUM_VALUE"
+  | InputObject -> "INPUT_OBJECT"
+  | InputFieldDefinition -> "INPUT_FIELD_DEFINITION"
 
 type directive_location = 
   | ExecutableDirectiveLocation of executable_directive_location
@@ -271,7 +293,7 @@ type executable_definition =
 
 type schema_extension = {
   directives: vc directive list;
-  definitions: operation_type_definition list;
+  operations: operation_type_definition list;
 }
 
 type scalar_type_extension = {
@@ -401,3 +423,4 @@ let document_to_schema_document (d: document): schema_document option =
       | _ -> None
     )
   | _ -> None
+

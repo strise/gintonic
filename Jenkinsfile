@@ -25,7 +25,7 @@ defaultPodTemplate {
           container("node") {
             sh '. ~/.profile \
             &&  npm i -g npm \
-            &&  npm ci'
+            &&  npm run bootstrap'
           }
         }
         stage("Build") {

@@ -6,7 +6,7 @@ defaultPodTemplate {
         image: 'eu.gcr.io/ntnu-smartmedia/bucklescript:10-2',
         ttyEnabled: true,
         command: 'cat',
-        resourceRequestCpu: '1'
+        resourceRequestCpu: '500m'
         )
       ]
     ) {

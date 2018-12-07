@@ -116,6 +116,29 @@ type directive_location =
   | ExecutableDirectiveLocation of executable_directive_location
   | TypeSystemDirectiveLocation of type_system_directive_location
 
+let name_to_directive_location l : directive_location option = match l with
+  | "QUERY" -> Some (ExecutableDirectiveLocation Query)
+  | "MUTATION" -> Some (ExecutableDirectiveLocation Mutation)
+  | "SUBSCRIPTION" -> Some (ExecutableDirectiveLocation Subscription)
+  | "FIELD" -> Some (ExecutableDirectiveLocation Field)
+  | "FRAGMENT_DEFINITION" -> Some (ExecutableDirectiveLocation FragmentDefinition)
+  | "FRAGMENT_SPREAD" -> Some (ExecutableDirectiveLocation FragmentSpread)
+  | "INLINE_FRAGMENT" -> Some (ExecutableDirectiveLocation InlineFragment)
+  | "SCHEMA" -> Some (TypeSystemDirectiveLocation Schema)
+  | "SCALAR" -> Some (TypeSystemDirectiveLocation Scalar)
+  | "OBJECT" -> Some (TypeSystemDirectiveLocation Object)
+  | "FIELD_DEFINITION" -> Some (TypeSystemDirectiveLocation FieldDefinition)
+  | "ARGUMENT_DEFINITION" -> Some (TypeSystemDirectiveLocation ArgumentDefinition)
+  | "INTERFACE" -> Some (TypeSystemDirectiveLocation Interface)
+  | "UNION" -> Some (TypeSystemDirectiveLocation Union)
+  | "ENUM" -> Some (TypeSystemDirectiveLocation Enum)
+  | "ENUM_VALUE" -> Some (TypeSystemDirectiveLocation EnumValue)
+  | "INPUT_OBJECT" -> Some (TypeSystemDirectiveLocation InputObject)
+  | "INPUT_FIELD_DEFINITION" -> Some (TypeSystemDirectiveLocation InputFieldDefinition)
+  | _ -> None
+
+
+
 type 'a argument = {
   name: name;
   value: 'a;

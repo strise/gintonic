@@ -1423,15 +1423,18 @@ type t = transformation
 
 let schema (t: transformation) : S.schema_document =  t.ts
 
+let original_schema (t: transformation): S.schema_document = t.os
+
 let transform s t: transformation = (
   let 
     (schema, r) = Schema.s s t 
   in
+  let ts =  schema >- Correct.c >- ShakeIt.c >- TypeCheck.c in
   {
     t = t;
     os = s;
     tr = r;
-    ts = schema >- Correct.c >- ShakeIt.c >- TypeCheck.c 
+    ts = ts 
   }
 )
 
@@ -1569,7 +1572,7 @@ end = struct
                  t.os.schema.operations
              with
              | Some t -> t
-             | None -> raise (Transformation_error "Failed to find operation")
+             | None -> raise (Transformation_error ("Failed to find operation " ^ (match o with | S.Mutation -> "mutation" | S.Query -> "query" | S.Subscription -> "subscription")))
            ));
       find_field = (
         (fun o f -> 

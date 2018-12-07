@@ -9,8 +9,12 @@
   },
   "dependencies": {
     "@mitoai/gqltrans": "0.0.1",
+    "express-graphql": "^0.7.1",
     "graphql": "^14.0.2",
-    "koa": "^2.6.2"
+    "http-errors": "^1.7.1",
+    "koa": "^2.6.2",
+    "koa-router": "^7.4.0",
+    "node-fetch": "^2.3.0"
   },
   "bin": {
     "gqltrans": "src/cli.js"

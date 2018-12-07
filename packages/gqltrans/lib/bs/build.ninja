@@ -1,0 +1,137 @@
+bs_package_flags = -bs-package-name graphql-transformer
+src_root_dir = /Users/budde/git/mitoai/graphql-transformer/packages/gqltrans
+bsc = /Users/budde/.nvm/versions/node/v10.1.0/lib/node_modules/bs-platform/lib/bsc.exe
+bsdep = /Users/budde/.nvm/versions/node/v10.1.0/lib/node_modules/bs-platform/lib/bsb_helper.exe
+warnings = -w -30-40+6+7+27+32..39+44+45+101 -warn-error +101
+bsc_flags = -bs-suffix -nostdlib -I '/Users/budde/git/mitoai/graphql-transformer/packages/gqltrans/node_modules/bs-platform/lib/ocaml' -color always
+ppx_flags = 
+bs_package_includes = -I /Users/budde/git/mitoai/graphql-transformer/packages/gqltrans/node_modules/@glennsl/bs-json/lib/ocaml
+bs_package_dev_includes = -I /Users/budde/git/mitoai/graphql-transformer/packages/gqltrans/node_modules/@glennsl/bs-jest/lib/ocaml
+namespace = 
+bsb_dir_group = 0
+bsc_group_1_includes = -I __tests__
+bsc_lib_includes = -I src
+rule ocamllex
+  command = ocamllex $in
+  description = [34mBuilding[39m [2m${out}[22m
+build $src_root_dir/src/gql_lexer.ml : ocamllex $src_root_dir/src/gql_lexer.mll
+rule menhir
+  command = menhir $in
+  description = [34mBuilding[39m [2m${out}[22m
+build $src_root_dir/src/gql_parser.ml $src_root_dir/src/gql_parser.mli : menhir $src_root_dir/src/gql_parser.mly
+build $src_root_dir/src/trans_lexer.ml : ocamllex $src_root_dir/src/trans_lexer.mll
+build $src_root_dir/src/trans_parser.ml $src_root_dir/src/trans_parser.mli : menhir $src_root_dir/src/trans_parser.mly
+rule build_ast_and_module_sets
+  command = ${bsc}  ${pp_flags} ${ppx_flags} ${warnings} ${bsc_flags} -c -o ${out} -bs-syntax-only -bs-binary-ast ${in}
+  description = [34mBuilding[39m [2m${out}[22m
+build src/utils.mlast : build_ast_and_module_sets $src_root_dir/src/utils.ml
+rule build_deps
+  command = ${bsdep} ${namespace} -g ${bsb_dir_group} -MD ${in}
+  description = [34mBuilding[39m [2m${out}[22m
+build src/utils.mlast.d : build_deps src/utils.mlast
+rule build_cmj_cmi
+  command = ${bsc} ${bs_package_flags} -bs-assume-no-mli -bs-no-builtin-ppx-ml -bs-no-implicit-include ${bs_package_includes} ${bsc_lib_includes} ${bsc_extra_includes} ${warnings} ${bsc_flags} -o ${out} -c  ${in} $postbuild
+  depfile = ${in}.d
+  description = [34mBuilding[39m [2m${out}[22m
+build src/utils.cmj |  $src_root_dir/src/utils.bs.js src/utils.cmi : build_cmj_cmi src/utils.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/linker.mliast : build_ast_and_module_sets $src_root_dir/src/linker.mli
+build src/linker.mliast.d : build_deps src/linker.mliast
+rule build_cmi
+  command = ${bsc} ${bs_package_flags} -bs-no-builtin-ppx-mli -bs-no-implicit-include ${bs_package_includes} ${bsc_lib_includes} ${bsc_extra_includes} ${warnings} ${bsc_flags} -o ${out} -c  ${in}
+  depfile = ${in}.d
+  description = [34mBuilding[39m [2m${out}[22m
+build src/linker.cmi : build_cmi src/linker.mliast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/gql_ast.mlast : build_ast_and_module_sets $src_root_dir/src/gql_ast.ml
+build src/gql_ast.mlast.d : build_deps src/gql_ast.mlast
+build src/gql_ast.cmj |  $src_root_dir/src/gql_ast.bs.js src/gql_ast.cmi : build_cmj_cmi src/gql_ast.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/js_utils.mliast : build_ast_and_module_sets $src_root_dir/src/js_utils.mli
+build src/js_utils.mliast.d : build_deps src/js_utils.mliast
+build src/js_utils.cmi : build_cmi src/js_utils.mliast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/js_utils.mlast : build_ast_and_module_sets $src_root_dir/src/js_utils.ml
+build src/js_utils.mlast.d : build_deps src/js_utils.mlast
+rule build_cmj_only
+  command = ${bsc} ${bs_package_flags} -bs-assume-has-mli -bs-no-builtin-ppx-ml -bs-no-implicit-include  ${bs_package_includes} ${bsc_lib_includes} ${bsc_extra_includes} ${warnings} ${bsc_flags} -o ${out} -c  ${in} $postbuild
+  depfile = ${in}.d
+  description = [34mBuilding[39m [2m${out}[22m
+build src/js_utils.cmj |  $src_root_dir/src/js_utils.bs.js : build_cmj_only src/js_utils.mlast |  src/js_utils.cmi
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/gql_lexer.mlast : build_ast_and_module_sets $src_root_dir/src/gql_lexer.ml
+build src/gql_lexer.mlast.d : build_deps src/gql_lexer.mlast
+build src/gql_lexer.cmj |  $src_root_dir/src/gql_lexer.bs.js src/gql_lexer.cmi : build_cmj_cmi src/gql_lexer.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/trans_ast.mlast : build_ast_and_module_sets $src_root_dir/src/trans_ast.ml
+build src/trans_ast.mlast.d : build_deps src/trans_ast.mlast
+build src/trans_ast.cmj |  $src_root_dir/src/trans_ast.bs.js src/trans_ast.cmi : build_cmj_cmi src/trans_ast.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/transform.mliast : build_ast_and_module_sets $src_root_dir/src/transform.mli
+build src/transform.mliast.d : build_deps src/transform.mliast
+build src/transform.cmi : build_cmi src/transform.mliast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/transform.mlast : build_ast_and_module_sets $src_root_dir/src/transform.ml
+build src/transform.mlast.d : build_deps src/transform.mlast
+build src/transform.cmj |  $src_root_dir/src/transform.bs.js : build_cmj_only src/transform.mlast |  src/transform.cmi
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/gql_parser.mliast : build_ast_and_module_sets $src_root_dir/src/gql_parser.mli
+build src/gql_parser.mliast.d : build_deps src/gql_parser.mliast
+build src/gql_parser.cmi : build_cmi src/gql_parser.mliast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/gql_parser.mlast : build_ast_and_module_sets $src_root_dir/src/gql_parser.ml
+build src/gql_parser.mlast.d : build_deps src/gql_parser.mlast
+build src/gql_parser.cmj |  $src_root_dir/src/gql_parser.bs.js : build_cmj_only src/gql_parser.mlast |  src/gql_parser.cmi
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/linker_ast.mlast : build_ast_and_module_sets $src_root_dir/src/linker_ast.ml
+build src/linker_ast.mlast.d : build_deps src/linker_ast.mlast
+build src/linker_ast.cmj |  $src_root_dir/src/linker_ast.bs.js src/linker_ast.cmi : build_cmj_cmi src/linker_ast.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/trans_lexer.mlast : build_ast_and_module_sets $src_root_dir/src/trans_lexer.ml
+build src/trans_lexer.mlast.d : build_deps src/trans_lexer.mlast
+build src/trans_lexer.cmj |  $src_root_dir/src/trans_lexer.bs.js src/trans_lexer.cmi : build_cmj_cmi src/trans_lexer.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/trans_parser.mliast : build_ast_and_module_sets $src_root_dir/src/trans_parser.mli
+build src/trans_parser.mliast.d : build_deps src/trans_parser.mliast
+build src/trans_parser.cmi : build_cmi src/trans_parser.mliast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build src/trans_parser.mlast : build_ast_and_module_sets $src_root_dir/src/trans_parser.ml
+build src/trans_parser.mlast.d : build_deps src/trans_parser.mlast
+build src/trans_parser.cmj |  $src_root_dir/src/trans_parser.bs.js : build_cmj_only src/trans_parser.mlast |  src/trans_parser.cmi
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:src
+build __tests__/gql_parser_test.mlast : build_ast_and_module_sets $src_root_dir/__tests__/gql_parser_test.ml
+build __tests__/gql_parser_test.mlast.d : build_deps __tests__/gql_parser_test.mlast
+  bsb_dir_group = 1
+build __tests__/gql_parser_test.cmj |  $src_root_dir/__tests__/gql_parser_test.bs.js __tests__/gql_parser_test.cmi : build_cmj_cmi __tests__/gql_parser_test.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:__tests__
+  bs_package_includes = $bs_package_includes $bs_package_dev_includes
+  bsc_extra_includes = $bsc_group_1_includes
+build __tests__/trans_lexer_test.mlast : build_ast_and_module_sets $src_root_dir/__tests__/trans_lexer_test.ml
+build __tests__/trans_lexer_test.mlast.d : build_deps __tests__/trans_lexer_test.mlast
+  bsb_dir_group = 1
+build __tests__/trans_lexer_test.cmj |  $src_root_dir/__tests__/trans_lexer_test.bs.js __tests__/trans_lexer_test.cmi : build_cmj_cmi __tests__/trans_lexer_test.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:__tests__
+  bs_package_includes = $bs_package_includes $bs_package_dev_includes
+  bsc_extra_includes = $bsc_group_1_includes
+build __tests__/trans_parser_test.mlast : build_ast_and_module_sets $src_root_dir/__tests__/trans_parser_test.ml
+build __tests__/trans_parser_test.mlast.d : build_deps __tests__/trans_parser_test.mlast
+  bsb_dir_group = 1
+build __tests__/trans_parser_test.cmj |  $src_root_dir/__tests__/trans_parser_test.bs.js __tests__/trans_parser_test.cmi : build_cmj_cmi __tests__/trans_parser_test.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:__tests__
+  bs_package_includes = $bs_package_includes $bs_package_dev_includes
+  bsc_extra_includes = $bsc_group_1_includes
+build __tests__/transform_schema_test.mlast : build_ast_and_module_sets $src_root_dir/__tests__/transform_schema_test.ml
+build __tests__/transform_schema_test.mlast.d : build_deps __tests__/transform_schema_test.mlast
+  bsb_dir_group = 1
+build __tests__/transform_schema_test.cmj |  $src_root_dir/__tests__/transform_schema_test.bs.js __tests__/transform_schema_test.cmi : build_cmj_cmi __tests__/transform_schema_test.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:__tests__
+  bs_package_includes = $bs_package_includes $bs_package_dev_includes
+  bsc_extra_includes = $bsc_group_1_includes
+build __tests__/transform_executable_test.mlast : build_ast_and_module_sets $src_root_dir/__tests__/transform_executable_test.ml
+build __tests__/transform_executable_test.mlast.d : build_deps __tests__/transform_executable_test.mlast
+  bsb_dir_group = 1
+build __tests__/transform_executable_test.cmj |  $src_root_dir/__tests__/transform_executable_test.bs.js __tests__/transform_executable_test.cmi : build_cmj_cmi __tests__/transform_executable_test.mlast
+  bs_package_flags = $bs_package_flags  -bs-package-output commonjs:__tests__
+  bs_package_includes = $bs_package_includes $bs_package_dev_includes
+  bsc_extra_includes = $bsc_group_1_includes
+build build.ninja : phony  ||  __tests__/transform_executable_test.mlast.d __tests__/transform_schema_test.mlast.d __tests__/trans_parser_test.mlast.d __tests__/trans_lexer_test.mlast.d __tests__/gql_parser_test.mlast.d src/trans_parser.mlast.d src/trans_parser.mliast.d src/trans_lexer.mlast.d src/linker_ast.mlast.d src/gql_parser.mlast.d src/gql_parser.mliast.d src/transform.mlast.d src/transform.mliast.d src/trans_ast.mlast.d src/gql_lexer.mlast.d src/js_utils.mlast.d src/js_utils.mliast.d src/gql_ast.mlast.d src/linker.mliast.d src/utils.mlast.d

@@ -1,0 +1,1 @@
+{ "dirs" : [ "src" , "__tests__" ] , "generated" : [ "gql_lexer.ml" , "gql_parser.ml" , "gql_parser.mli" , "trans_lexer.ml" , "trans_parser.ml" , "trans_parser.mli" ] }

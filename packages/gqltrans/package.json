@@ -1,0 +1,25 @@
+{
+  "name": "graphql-transformer",
+  "version": "0.1.0",
+  "scripts": {
+    "clean": "bsb -clean-world",
+    "build": "bsb -make-world",
+    "watch": "bsb -make-world -w",
+    "build-system:build": "docker build -t ${IMAGE:-build-system:latest} build_system",
+    "build-system:push": "docker push  ${IMAGE:-build-system:latest}",
+    "build-system": "npm run build-system:build && npm run build-system:push",
+    "test": "jest"
+  },
+  "keywords": [
+    "BuckleScript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "@glennsl/bs-json": "^3.0.0"
+  },
+  "devDependencies": {
+    "@glennsl/bs-jest": "^0.4.5",
+    "bs-platform": "^4.0.7"
+  }
+}

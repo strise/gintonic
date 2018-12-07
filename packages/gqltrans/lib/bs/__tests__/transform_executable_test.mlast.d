@@ -1,0 +1,1 @@
+__tests__/transform_executable_test.cmj : src/gql_ast.cmj src/gql_lexer.cmj src/gql_parser.cmj src/trans_lexer.cmj src/trans_parser.cmj src/transform.cmj

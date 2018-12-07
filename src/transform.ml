@@ -1,6 +1,6 @@
 
 module T = Trans_ast
-module S = Schema_ast
+module S = Gql_ast
 
 
 
@@ -1380,7 +1380,7 @@ let transform s t: transformation = (
 
 
 module Exec: sig
-  val c: transformation -> Schema_ast.executable_document -> Schema_ast.executable_document
+  val c: transformation -> S.executable_document -> S.executable_document
 end = struct
   exception Transformation_error of string
 

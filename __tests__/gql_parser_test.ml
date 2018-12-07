@@ -1,8 +1,8 @@
 open Jest
 open Expect
-open Schema_ast
+open Gql_ast
 
-let parse = Schema_parser.document Schema_lexer.read
+let parse = Gql_parser.document Gql_lexer.read
 
 let parseString(s: string ): document = parse (Lexing.from_string s )
 

@@ -30,18 +30,18 @@
         {
           "name": "menhir",
           "edge": [
-            "schema_parser.ml",
-            "schema_parser.mli",
+            "gql_parser.ml",
+            "gql_parser.mli",
             ":",
-            "schema_parser.mly"
+            "gql_parser.mly"
           ]
         },
         {
           "name": "ocamllex",
           "edge": [
-            "schema_lexer.ml",
+            "gql_lexer.ml",
             ":",
-            "schema_lexer.mll"
+            "gql_lexer.mll"
           ]
         }
       ]

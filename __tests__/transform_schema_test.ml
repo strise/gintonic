@@ -3,8 +3,8 @@ open Expect
 
 exception Error
 
-let parseS = Schema_parser.document Schema_lexer.read
-let parseSS(s: string) = match Schema_ast.document_to_schema_document (parseS (Lexing.from_string s)) with
+let parseS = Gql_parser.document Gql_lexer.read
+let parseSS(s: string) = match Gql_ast.document_to_schema_document (parseS (Lexing.from_string s)) with
   | Some s -> s
   | None -> raise Error
 

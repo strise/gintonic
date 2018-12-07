@@ -1,0 +1,989 @@
+"""
+
+An alias for an entity. This contains three fields: `value`, `color`, and `disabled`. These
+are used to determine the disambiguation strategy for the alias.
+  
+"""
+type Alias {
+  """The alias value."""
+  value: String!
+
+  """The alias color."""
+  color: AliasColor!
+
+  """Whether the alias is disabled."""
+  disabled: Boolean!
+}
+
+"""An enum representing supported languages."""
+enum AliasColor {
+  """Indicates that the alias should never be trusted."""
+  BLACK
+
+  """
+  Indicates if the context should be used when disambiguating between choices.
+  """
+  GREY
+
+  """Indicates if the alias should be trusted uncritically."""
+  WHITE
+}
+
+"""
+
+An alias for an entity. This contains three fields: `value`, `color`, and `disabled`. These
+are used to determine the disambiguation strategy for the alias.
+  
+"""
+input AliasInput {
+  """The alias value."""
+  value: String!
+
+  """The alias color."""
+  color: AliasColor!
+
+  """Whether the alias is disabled."""
+  disabled: Boolean!
+}
+
+"""Annotation"""
+type Annotation {
+  """Annotation phrase."""
+  phrase: String!
+
+  """Annotation offset."""
+  offset: Offset!
+
+  """Annotation length."""
+  length: Int!
+
+  """All annotation extractors."""
+  extractors: [Extractor!]!
+
+  """Annotation entity."""
+  entity: EntityOrRef!
+}
+
+"""A body offset."""
+type BodyOffset implements Offset {
+  """Offset relative to the body."""
+  offset: Int!
+}
+
+"""A representation of categories."""
+type Category {
+  """Category ID."""
+  id: ID!
+
+  """Category name."""
+  name: String
+
+  """Child categories."""
+  children: [Category!]!
+
+  """Parent category."""
+  parent: Category
+
+  """Path from root category to this category. Excluding self."""
+  path: [Category!]!
+}
+
+"""A cursor used for fetching more news."""
+scalar Cursor
+
+"""
+
+A default implementation of the [PropertyValue](#PropertyValue). If all else fails, this is the go-to property value.
+  
+"""
+type DefaultPropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+}
+
+"""
+
+An entity!
+  
+"""
+type Entity {
+  """Internal entity ID."""
+  id: ID!
+
+  """Will contain the link to the corresponding wikidata page, if present."""
+  wikidataUrl: String
+
+  """The entity score."""
+  score(
+    """The language to be used when resolving the field."""
+    language: Language
+  ): Float!
+
+  """Entity name."""
+  name(
+    """The language to be used when resolving the field."""
+    language: Language
+  ): String!
+
+  """Entity description."""
+  description(
+    """The language to be used when resolving the field."""
+    language: Language
+  ): String!
+
+  """Entity aliases."""
+  aliases(
+    """The language to be used when resolving the field."""
+    language: Language
+  ): [Alias!]!
+
+  """Entity properties."""
+  properties(
+    """The language to be used when resolving the field."""
+    language: Language
+
+    """
+    
+    A list of ID that, when supplied, will filter the returned edges.
+    All edges with a relationship that isn't in the provided list will not be returned.
+            
+    """
+    relationshipFilter: [ID!]
+  ): PropertyConnection!
+
+  """The relations to other entities."""
+  relations(
+    """The language to be used when resolving the field."""
+    language: Language
+
+    """Filter returned relations by id."""
+    relationshipFilter: [ID!]
+  ): RelationConnection!
+
+  """
+  
+  Fetch news-item, within a time-span, related to this entity.
+      
+  """
+  news(
+    """A timestamp indicating from"""
+    from: ISODateTime!
+
+    """A timestamp indicating to"""
+    to: ISODateTime!
+
+    """A cursor used to continue iteration"""
+    after: Cursor
+
+    """Filter"""
+    filter: EntityNewsItemConnectionFilter
+
+    """Only fetches news deemed relevant for the entity."""
+    onlyRelevant: Boolean = false
+
+    """
+    Provide a cluster score. This will remove news items based on the similarity score of similar items.
+    """
+    clusterScore: Long
+
+    """The number of items to fetch"""
+    first: Int = 10
+  ): EntityNewsItemConnection!
+}
+
+"""A connection used for iterating through news."""
+type EntityNewsItemConnection {
+  """Edges containing the news data."""
+  edges: [EntityNewsItemConnectionEdge!]!
+
+  """Information regarding the results"""
+  pageInfo: PageInfo!
+
+  """
+  
+  Generate a histogram of how often the entity has been mentioned, e.g. in the media.
+      
+  """
+  histogram(
+    """The interval of the values returned."""
+    interval: HistogramInterval = DAY
+  ): Histogram!
+}
+
+"""
+An edge containing relational information between entity and news item.
+"""
+type EntityNewsItemConnectionEdge {
+  """A cursor used for fetching of more data."""
+  cursor: Cursor!
+
+  """A summary in the context of the entity."""
+  summary: Summary!
+
+  """Indicates if the news-item is relevant to the entity."""
+  relevant: Boolean!
+
+  """The news item."""
+  node: NewsItem!
+}
+
+"""Possible filters when fetching news."""
+enum EntityNewsItemConnectionFilter {
+  """Relevance filter."""
+  RELEVANCE
+}
+
+"""An union type of external entity refs and entities."""
+union EntityOrRef = Entity | EntityRef
+
+"""A reference to an external entity"""
+type EntityRef {
+  """The entity ID."""
+  id: ID!
+}
+
+"""Entity extractors used to find entities in text."""
+enum Extractor {
+  """The Mito matcher extractor."""
+  MITO_META
+
+  """The Mito annotation extractor."""
+  MITO_ANNOTATION
+
+  """The Mito matcher extractor."""
+  MITO_MATCHER
+
+  """The Mito unit extractor."""
+  MITO_UNIT
+
+  """The Mito company extractor."""
+  MITO_COMPANY
+
+  """The spotlight extractor."""
+  SPOTLIGHT
+
+  """The Mito default extractor."""
+  MITO_DEFAULT
+}
+
+"""
+
+When the value is determined to be a facebook user-id, this implementation can be used to access relevant content.
+  
+"""
+type FacebookProfileIdPropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+
+  """A url to the facebook profile."""
+  facebookProfileUrl: String!
+}
+
+"""A geo-coordinate."""
+type GeoCoordinate {
+  """The latitude of the geo-coordinates"""
+  latitude: Float!
+
+  """The longitude of the geo-coordinates"""
+  longitude: Float!
+}
+
+"""
+
+When the value is determined to be a geo-coordinate, this implementation can be used to access relevant content.
+  
+"""
+type GeoCoordinatePropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+
+  """The longitude of the geo-coordinates"""
+  location: GeoCoordinate!
+}
+
+"""
+
+A histogram showing trends over time.
+  
+"""
+type Histogram {
+  """The values of the histogram."""
+  values: [HistogramEntry!]!
+}
+
+"""
+
+A single histogram value.
+  
+"""
+type HistogramEntry {
+  """The value."""
+  value: Long!
+
+  """The time."""
+  time: ISODateTime!
+}
+
+"""An enum representing supported histogram interval."""
+enum HistogramInterval {
+  """Hour interval."""
+  HOUR
+
+  """Day interval"""
+  DAY
+
+  """Week interval."""
+  WEEK
+}
+
+"""A representation of an image."""
+type Image {
+  """A URL where the image can be accessed."""
+  url: String!
+}
+
+"""
+
+An combined date-time representation according to the [ISO 8601](https://en.wikipedia.org/wiki/ISO_8601) standard.
+      
+"""
+scalar ISODateTime
+
+"""An enum representing supported languages."""
+enum Language {
+  """German."""
+  GERMAN
+
+  """French."""
+  FRENCH
+
+  """Spanish."""
+  SPANISH
+
+  """Swedish."""
+  SWEDISH
+
+  """English."""
+  ENGLISH
+
+  """Norwegian."""
+  NORWEGIAN
+
+  """Danish."""
+  DANISH
+}
+
+"""
+The `Long` scalar type represents non-fractional signed whole numeric values.
+Long can represent values between -(2^63) and 2^63 - 1.
+"""
+scalar Long
+
+"""
+
+The root mutation object. From here you may update the Mito.ai Graph.
+  
+"""
+type Mutation {
+  """
+  
+  Update entities has never been so easy! By supplying an mandatory id, and optionally specifying which language the
+  changes should be made upon, you can update the `name`, `description`, and `aliases` on this field. Un-supplied arguments
+  will not be modified. This field will return the entity if found, else `null`.
+  
+  Notice that for adding properties and relations, you should use the
+  [Mutation.addPropertyToEntity](#Mutation.addPropertyToEntity),
+  [Mutation.removePropertyFromEntity](#Mutation.removePropertyFromEntity),
+  [Mutation.addRelationToEntity](#Mutation.addRelationToEntity), and
+  [Mutation.removeRelationFromEntity](#Mutation.removeRelationFromEntity), to
+  add a property, remove a property, add a relation, or remove a relation
+  respectively.
+      
+  """
+  updateEntity(
+    """ID of the entity to be updated."""
+    id: ID!
+
+    """The language to update."""
+    language: Language
+
+    """The new name."""
+    name: String
+
+    """The new description."""
+    description: String
+
+    """The new aliases."""
+    aliases: [AliasInput!]
+  ): Entity
+
+  """
+  
+  Create a new entity by supplying the name. This entity will get a unique ID and can subsequently be modified.
+  The name should be that of the default name, but can be modified later on.
+      
+  """
+  createEntity(
+    """The name of the entity."""
+    name: String!
+  ): Entity!
+
+  """
+  
+  Add a property to the entity. The `language` can be used to add a language specific property. This
+  field will return an entity if found, else `null`.
+      
+  """
+  addPropertyToEntity(
+    """The ID of the entity to update"""
+    id: ID!
+
+    """The language to update."""
+    language: Language
+
+    """ID of the relationship."""
+    relationship: ID!
+
+    """The value."""
+    value: String!
+  ): Entity
+
+  """
+  
+  Remove a property from an entity. The `language` can be used to add a language specific property. This
+  field will return an entity if found, else `null`.
+      
+  """
+  removePropertyFromEntity(
+    """The ID of the entity to update"""
+    id: ID!
+
+    """The language to update."""
+    language: Language
+
+    """ID of the relationship."""
+    relationship: ID!
+
+    """The value."""
+    value: String!
+  ): Entity
+
+  """
+  
+  Add a relation to the entity. The `language` can be used to add a language specific property. This
+  field will return an entity if found, else `null`.
+      
+  """
+  addRelationToEntity(
+    """The ID of the entity to update"""
+    id: ID!
+
+    """The language to update."""
+    language: Language
+
+    """ID of the relationship."""
+    relationship: ID!
+
+    """The ID of the target entity"""
+    entity: ID!
+  ): Entity
+
+  """
+  
+  Remove a relation from an entity. The `language` can be used to add a language specific property. This
+  field will return an entity if found, else `null`.
+      
+  """
+  removeRelationFromEntity(
+    """The ID of the entity to update"""
+    id: ID!
+
+    """The language to update."""
+    language: Language
+
+    """ID of the relationship."""
+    relationship: ID!
+
+    """The ID of the target entity"""
+    entity: ID!
+  ): Entity
+
+  """
+  
+  Add an entity to a portfolio.
+      
+  """
+  addEntityToPortfolio(
+    """The ID of the entity to add."""
+    entity: ID!
+
+    """The ID of the portfolio to add to."""
+    portfolio: ID!
+  ): Portfolio
+
+  """
+  
+  Remove an entity from a portfolio.
+      
+  """
+  removeEntityFromPortfolio(
+    """The ID of the entity to remove."""
+    entity: ID!
+
+    """The ID of the portfolio to remove from."""
+    portfolio: ID!
+  ): Portfolio
+
+  """
+  
+  Create an empty portfolio.
+      
+  """
+  createPortfolio(
+    """The name of the portfolio to create."""
+    name: String!
+  ): Boolean!
+
+  """
+  
+  Remove a portfolio.
+      
+  """
+  removePortfolio(
+    """The ID of the portfolio to remove."""
+    portfolio: ID!
+  ): Boolean!
+}
+
+"""
+
+An item representing e.g. news articles.
+  
+"""
+type NewsItem {
+  """News item id"""
+  id: ID!
+
+  """Item title"""
+  title: String!
+
+  """Item URL"""
+  url: String!
+
+  """Images associated with the news item"""
+  images: [Image!]!
+
+  """Published time."""
+  published: ISODateTime!
+
+  """The publisher."""
+  publisher: String!
+
+  """A summary of the article."""
+  summary: Summary!
+
+  """The rank of the news item."""
+  rank: Int!
+
+  """The body-text of the news item."""
+  body: String!
+
+  """The entity language."""
+  language: Language
+
+  """Some kind of measurement of news impact."""
+  impact: Float!
+
+  """The entities of the news items."""
+  entities: NewsItemEntityConnection!
+
+  """The news item categories."""
+  categories: NewsItemCategoryConnection!
+
+  """News item properties."""
+  properties(
+    """
+    
+    A list of ID that, when supplied, will filter the returned edges.
+    All edges with a relationship that isn't in the provided list will not be returned.
+                        
+    """
+    relationshipFilter: [ID!]
+  ): PropertyConnection!
+
+  """Similar news items."""
+  similar(
+    """Cursor when paginating."""
+    after: Cursor
+
+    """How many items to fetch pr. page"""
+    first: Int = 10
+  ): NewsItemNewsItemConnection!
+}
+
+"""News item and category relation."""
+type NewsItemCategoryConnection {
+  """The edges of the connection"""
+  edges: [NewsItemCategoryConnectionEdge!]!
+}
+
+"""The news-item category connection edge."""
+type NewsItemCategoryConnectionEdge {
+  """The category in question."""
+  node: Category!
+}
+
+"""A connection between news items and entities."""
+type NewsItemEntityConnection {
+  """The edges of the connection."""
+  edges: [NewsItemEntityConnectionEdge!]!
+
+  """Accumulated annotations across entities."""
+  annotations: [Annotation!]!
+}
+
+"""An edge on a news-entity connection."""
+type NewsItemEntityConnectionEdge {
+  """The annotations."""
+  annotations: [Annotation!]!
+
+  """All annotation extractors."""
+  extractors: [Extractor!]!
+
+  """Indicates if the entity is relevant for the news item."""
+  relevant: Boolean!
+
+  """The relevance measure of the entity."""
+  relevance: Relevance!
+
+  """News item summary in the context of the entity"""
+  summary: Summary!
+
+  """The related entity."""
+  node: EntityOrRef!
+}
+
+"""The connection between a news item and a similar news item."""
+type NewsItemNewsItemConnection {
+  """The edges of the connection."""
+  edges: [NewsItemNewsItemConnectionEdge!]!
+
+  """Information regarding the results"""
+  pageInfo: PageInfo!
+
+  """
+  
+  Generate a histogram of how often the entity has been mentioned, e.g. in the media.
+                        
+  """
+  histogram(
+    """The interval of the values returned."""
+    interval: HistogramInterval = DAY
+  ): Histogram!
+}
+
+"""The edge of tne news-item news-item connection."""
+type NewsItemNewsItemConnectionEdge {
+  """The news item."""
+  node: NewsItem!
+
+  """Cursor used for further pagination."""
+  cursor: Cursor!
+
+  """The similarity of the two connected news items."""
+  similarityScore: Float!
+}
+
+"""An union type of external entity refs and entities."""
+interface Offset {
+  """Some offset"""
+  offset: Int!
+}
+
+"""The filtered result."""
+type OverlappingResult {
+  """The article in question"""
+  item: NewsItem!
+
+  """If it's overlapping or not."""
+  overlapping: Boolean!
+}
+
+"""Information regarding the current connection"""
+type PageInfo {
+  """Whether there is a next page"""
+  hasNextPage: Boolean!
+
+  """Whether backwards-pagination is enabled and there is a previous page"""
+  hasPreviousPage: Boolean!
+
+  """The total number of results found."""
+  totalCount: Long!
+}
+
+"""An representation of portfolios, which are a collection of entities."""
+type Portfolio {
+  """The ID of the portfolio."""
+  id: ID!
+
+  """The name of the portfolio."""
+  name: String!
+
+  """The entities in the portfolio."""
+  entities: PortfolioEntityConnection!
+}
+
+"""A Connection containing entities."""
+type PortfolioEntityConnection {
+  """The entities as edges."""
+  edges: [PortfolioEntityConnectionEdge!]!
+}
+
+"""An edge containing the Entity"""
+type PortfolioEntityConnectionEdge {
+  """The entity."""
+  node: Entity!
+}
+
+"""
+
+A connection containing properties.
+  
+"""
+type PropertyConnection {
+  """The properties as edges."""
+  edges: [PropertyConnectionEdge!]!
+}
+
+"""
+
+An edge containing the property and the corresponding relationship.
+  
+"""
+type PropertyConnectionEdge {
+  """The property value."""
+  node: PropertyValue!
+
+  """Indicating the relationship between the nodes of the edge."""
+  relationship: Relationship!
+}
+
+"""
+An interface for property values. The concrete types implement custom logic for handling the different type of values.
+"""
+interface PropertyValue {
+  """An string value, which is always present."""
+  value: String!
+}
+
+"""
+
+This is the root query type and as such will be your main entry-point to the
+Mito API when fetching data.
+  
+"""
+type Query {
+  """
+  
+   Given a list of ids, this will lookup the corresponding entity. Order is preserved and
+   if an entity isn't found, the result will be omitted.
+      
+  """
+  entitiesById(
+    """A list of ID's"""
+    ids: [ID!]!
+  ): [Entity!]!
+
+  """
+  
+  Find entity by ID. Retrieves the entity if found, else `null`.
+      
+  """
+  entityById(
+    """The internal entity ID"""
+    id: ID!
+  ): Entity
+
+  """
+  
+  Find relationship by ID. Retrieves the relationship if found, else `null`.
+                        
+  """
+  relationshipById(
+    """The internal relationship ID"""
+    id: ID!
+  ): Relationship
+
+  """
+  
+   Given a list of ids, this will lookup the corresponding relationship. Order is preserved and
+   if a relationship isn't found, the result will be omitted.
+      
+  """
+  relationshipsById(
+    """A list of ID's"""
+    ids: [ID!]!
+  ): [Relationship!]!
+
+  """
+  
+  Filter duplicate news-items and return the filtered list. The order is preserved and
+  An item is deemed duplicate of the preceding items.
+                        
+  """
+  findOverlappingNewsItems(
+    """The ID's of the articles to be filtered"""
+    ids: [ID!]!
+  ): [OverlappingResult!]! @deprecated(reason: "Use duplication logic when fetching articles.")
+
+  """
+  
+  Retrieve a news item by the internal GraphQL ID. If the item doesn't exists null is returned.
+      
+  """
+  newsItemById(
+    """ID of the news item to fetch."""
+    id: ID!
+  ): NewsItem
+
+  """
+  
+  Retrieve a news item by URL. If more items share the same url, the behaviour is undefined.
+      
+  """
+  newsItemByUrl(
+    """URL of the news item to fetch."""
+    url: String!
+  ): NewsItem @deprecated(reason: "Due the ambiguity by fetching news items by url, it is recommended to use [newsItemById](#Query.newsItemById).")
+
+  """
+  
+  Lists all portfolios.
+      
+  """
+  portfolios: [Portfolio!]!
+}
+
+"""
+
+A connection containing entities.
+  
+"""
+type RelationConnection {
+  """The relation as edges."""
+  edges: [RelationConnectionEdge!]!
+}
+
+"""
+
+An edge containing the entity and the corresponding relationship.
+  
+"""
+type RelationConnectionEdge {
+  """Indicating the relationship between the nodes of the edge."""
+  relationship: Relationship!
+
+  """The related entity."""
+  node: EntityOrRef!
+}
+
+"""
+
+Represents a relationship between two nodes, e.g. between entities, or entities and values.
+  
+"""
+type Relationship {
+  """The relationship ID"""
+  id: ID!
+
+  """Some name, if available."""
+  name: String
+}
+
+"""
+
+Relevance is an internal measurement of how relevant the entity is wrt. the
+news article.
+  
+"""
+type Relevance {
+  """The relevance score"""
+  score: Float!
+
+  """An explanation of the relevance"""
+  description: RelevanceScore!
+}
+
+"""
+
+The foundation of the relevance score.
+  
+"""
+type RelevanceScore {
+  """Content score"""
+  content: Float!
+
+  """Meta score"""
+  meta: Float!
+
+  """Offset score"""
+  offset: Float!
+
+  """Mention score"""
+  mention: Float!
+
+  """Context score"""
+  context: Float!
+}
+
+"""A summary of a news item."""
+type Summary {
+  """Retrieve the summary text"""
+  text: String!
+}
+
+"""A title offset."""
+type TitleOffset implements Offset {
+  """Offset relative to the title."""
+  offset: Int!
+}
+
+"""
+
+When the value is determined to be a twitter handle, this implementation can be used to access relevant content.
+  
+"""
+type TwitterHandlePropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+
+  """A url to the twitter profile."""
+  twitterProfileUrl: String!
+}
+
+"""
+
+When the value is determined to be a website, this implementation can be used to access relevant content.
+  
+"""
+type WebsitePropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+
+  """The coresponding url for the website."""
+  url: String!
+}
+
+"""
+
+When the value is determined to be a WikiMedia image, this implementation can be used to access relevant content.
+  
+"""
+type WikiMediaImagePropertyValue implements PropertyValue {
+  """The value."""
+  value: String!
+
+  """An image representing the wiki-media hosted image."""
+  image: Image!
+}
+

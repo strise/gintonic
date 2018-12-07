@@ -63,7 +63,7 @@
 %token EOF
 
 %{
-    open Schema_ast
+    open Gql_ast
 
     let flat(l) = match l with 
       | Some l -> l
@@ -71,7 +71,7 @@
 
 %}
 
-%start <Schema_ast.document> document
+%start <Gql_ast.document> document
 %%
 
 document: ds = definition+ EOF    { { definitions = ds } }

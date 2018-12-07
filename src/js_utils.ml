@@ -1,5 +1,5 @@
 
-module S = Schema_ast
+module S = Gql_ast
 
 
 let empty_to_null (encoder: 'a list Json.Encode.encoder) : 'a list Json.Encode.encoder =

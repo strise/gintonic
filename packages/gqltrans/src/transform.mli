@@ -1,10 +1,10 @@
 
 
-type transformation
+type t
 
-val transform: Gql_ast.schema_document -> Trans_ast.document -> transformation
+val transform: Gql_ast.schema_document -> Trans_ast.document -> t
 
-val schema: transformation -> Gql_ast.schema_document
+val schema: t -> Gql_ast.schema_document
 
-val executable: transformation -> Gql_ast.executable_document -> Gql_ast.executable_document
+val executable: t -> Gql_ast.executable_document -> Gql_ast.executable_document
 

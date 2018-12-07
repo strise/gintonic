@@ -4,9 +4,7 @@ open Expect
 exception Error
 
 let parseS = Gql_parser.document Gql_lexer.read
-let parseSS(s: string) = match Gql_ast.document_to_schema_document (parseS (Lexing.from_string s)) with
-  | Some s -> s
-  | None -> raise Error
+let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
 
 let parseT = Trans_parser.document Trans_lexer.read
@@ -1093,6 +1091,32 @@ let () =
             }
             type Query @foo(a: {t : \"t\"}) {
               f: String
+            }
+            ";
+          testPrograms 
+            "use build-in directive"
+            "
+
+            input T {
+              f: String
+              t: String
+            }
+
+            type Query @deprecated(reason: \"some reason\") {
+              f(t: T): String
+            }
+            "
+            "
+            transform input T {
+              f = \"foo\"
+            }
+            "
+            "
+            input T {
+              t: String
+            }
+            type Query @deprecated(reason: \"some reason\") {
+              f(t: T): String
             }
             ";
         );

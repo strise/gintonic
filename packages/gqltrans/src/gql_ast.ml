@@ -367,7 +367,9 @@ type schema_document = {
   types: type_definition list;
 }
 
-let document_to_executable_document (d: document): executable_document option = 
+exception Invalid_document of string
+
+let document_to_executable_document (d: document): executable_document = 
   let 
     ops: (operation_definition list * fragment_definition list) = 
     List.fold_right 
@@ -381,10 +383,10 @@ let document_to_executable_document (d: document): executable_document option =
       ([], [])
   in
   match ops with
-  | (op::[], fragments) -> Some {operation = op; fragments = fragments}
-  | _ -> None
+  | (op::[], fragments) -> {operation = op; fragments = fragments}
+  | _ -> raise (Invalid_document "Failed to create executable document.")
 
-let document_to_schema_document (d: document): schema_document option = 
+let document_to_schema_document (d: document): schema_document  = 
   let 
     ops: (schema_definition list * directive_definition list * type_definition list) = 
     List.fold_right 
@@ -399,7 +401,7 @@ let document_to_schema_document (d: document): schema_document option =
       ([], [], [])
   in
   match ops with
-  | (s::[], dirs, tps) -> Some {schema = s; directives = dirs; types =tps}
+  | (s::[], dirs, tps) -> {schema = s; directives = dirs; types =tps}
   | ([], dirs, tps) -> (
       let
         ops = 
@@ -419,8 +421,8 @@ let document_to_schema_document (d: document): schema_document option =
           (None, None, None)
       in
       match ops with
-      | Some q, m, s -> Some {schema = {directives = []; operations = Utils.flatten ((Some q)::m::s::[])}; directives = dirs; types = tps }
-      | _ -> None
+      | Some q, m, s -> {schema = {directives = []; operations = Utils.flatten ((Some q)::m::s::[])}; directives = dirs; types = tps }
+      | _ -> raise (Invalid_document "Failed to create schema document.")
     )
-  | _ -> None
+  | _ -> raise (Invalid_document "Failed to create schema document.")
 

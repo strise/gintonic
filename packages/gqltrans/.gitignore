@@ -1,3 +1,8 @@
+src/**/*_parser.ml
+src/**/*_parser.mli
+src/**/*_lexer.ml
+src/**/*.js
+__tests__/**/*.js
 *.exe
 *.obj
 *.out
@@ -25,4 +30,3 @@ lib/bs
 .merlin
 .bsb.lock
 node_modules
-lerna-debug.log

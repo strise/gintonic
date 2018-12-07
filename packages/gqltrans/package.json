@@ -1,6 +1,6 @@
 {
-  "name": "graphql-transformer",
-  "version": "0.1.0",
+  "name": "@mitoai/gqltrans",
+  "version": "0.0.1",
   "scripts": {
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
@@ -10,6 +10,7 @@
     "build-system": "npm run build-system:build && npm run build-system:push",
     "test": "jest"
   },
+  "main": "src/index.bs.js",
   "keywords": [
     "BuckleScript"
   ],
@@ -20,6 +21,10 @@
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.5",
+    "graphql": "^14.0.2",
     "bs-platform": "^4.0.7"
+  },
+  "peerDependencies": {
+    "graphql": "^14.0.2"
   }
 }

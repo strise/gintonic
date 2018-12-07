@@ -1,17 +1,11 @@
 open Jest
 open Expect
 
-exception Error
-
 let parse_schema = Gql_parser.document Gql_lexer.read
 
-let parse_executable_string(s: string) = match Gql_ast.document_to_executable_document (parse_schema (Lexing.from_string s)) with
-  | Some s -> s
-  | None -> raise Error
+let parse_executable_string(s: string) = Gql_ast.document_to_executable_document (parse_schema (Lexing.from_string s))
 
-let parse_schema_string(s: string) = match Gql_ast.document_to_schema_document (parse_schema (Lexing.from_string s)) with
-  | Some s -> s
-  | None -> raise Error
+let parse_schema_string(s: string) =  Gql_ast.document_to_schema_document (parse_schema (Lexing.from_string s))
 
 
 let parse_trans = Trans_parser.document Trans_lexer.read

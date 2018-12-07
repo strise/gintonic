@@ -1,1 +1,0 @@
-__tests__/trans_parser_test.cmj : src/trans_ast.cmj src/trans_lexer.cmj src/trans_parser.cmj

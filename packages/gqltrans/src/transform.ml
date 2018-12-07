@@ -2,7 +2,61 @@
 module T = Trans_ast
 module S = Gql_ast
 
+let build_in_scalars = 
+  (S.ScalarTypeDefinition {description = None; name = "String"; directives = []})
+  ::(S.ScalarTypeDefinition {description = None; name = "Int"; directives = []})
+  ::(S.ScalarTypeDefinition {description = None; name = "Float"; directives = []})
+  ::(S.ScalarTypeDefinition {description = None; name = "Boolean"; directives = []})
+  ::(S.ScalarTypeDefinition {description = None; name = "ID"; directives = []})
+  ::[]
 
+
+let build_in_directives: S.directive_definition list =
+  ({
+    description = None;
+    name = "deprecated";
+    arguments = {
+      description = None;
+      name = "reason";
+      tpe = S.NamedType "String";
+      defaultValue = Some (S.StringValue (S.StringValue "\"No longer supported\""));
+      directives = [];
+    }::[];
+    locations = (S.TypeSystemDirectiveLocation S.EnumValue)::(S.TypeSystemDirectiveLocation S.FieldDefinition)::[];
+  })::
+  ({
+    description = None;
+    name = "skip";
+    arguments = {
+      description = None;
+      name = "if";
+      tpe = S.NamedType "Boolean";
+      defaultValue = None;
+      directives = [];
+    }::[];
+    locations = 
+      (S.ExecutableDirectiveLocation S.Field)::
+      (S.ExecutableDirectiveLocation S.FragmentSpread)::
+      (S.ExecutableDirectiveLocation S.InlineFragment)::
+      [];
+  })::
+  ({
+    description = None;
+    name = "include";
+    arguments = {
+      description = None;
+      name = "if";
+      tpe = S.NamedType "Boolean";
+      defaultValue = None;
+      directives = [];
+    }::[];
+    locations = 
+      (S.ExecutableDirectiveLocation S.Field)::
+      (S.ExecutableDirectiveLocation S.FragmentSpread)::
+      (S.ExecutableDirectiveLocation S.InlineFragment)::
+      [];
+  })::
+  []
 
 let m_operation_type (m: T.operation_type) = match m with
   | T.Query -> S.Query
@@ -539,8 +593,8 @@ struct
   exception Correction_error of string
 
   type ctx = {
-    inputs: (string  * S.input_object_type_definition) list;
-    dirArgs: ((string * string) * S.tpe) list;
+    find_directive_arg: string -> string -> S.tpe;
+    find_input_opt: string -> S.input_object_type_definition option
   }
 
   let c_argument (m: string -> 'a -> 'a) (a: 'a S.argument): 'a S.argument = 
@@ -550,12 +604,7 @@ struct
     }
 
   let c_directive (m: S.tpe -> 'a -> 'a) (c: ctx) (d: 'a S.directive): 'a S.directive = 
-
-    let 
-      f (s1 : string) (s2: string) = match Utils.assoc_opt (s1, s2) c.dirArgs with
-      | Some t -> m t
-      | None -> raise (Correction_error ("Failed to find directive with name " ^ s1 ^ " and argument " ^ s2)) 
-    in 
+    let f = fun s1 s2 -> m (c.find_directive_arg s1 s2) in
     {
       d with
       arguments = List.map (c_argument (f d.name)) d.arguments
@@ -582,7 +631,7 @@ struct
     | (S.NonNullType (S.ListType l), v) -> c_value_const c (S.ListType l) v
     | (S.NamedType n, (S.ObjectValue v)) -> 
       (
-        match Utils.assoc_opt n c.inputs with
+        match c.find_input_opt n with
         | Some i -> S.ObjectValue (c_object_fields_const c i v)
         | None -> S.ObjectValue v
       )
@@ -691,10 +740,23 @@ struct
              d.arguments
              acc
         )
-        s.directives
+        (List.concat (s.directives::build_in_directives::[]))
         []
+    in
+    let 
+      c = {
+      find_input_opt = (fun n -> 
+          Utils.assoc_opt n inputs
+        );
+      find_directive_arg = fun s1 s2 -> (
+          try List.assoc (s1, s2) dirArgs
+          with Not_found -> raise (Correction_error ("Failed to find argument " ^ s2 ^ " for directive @" ^ s1))
+        )
+    }
     in 
-    c_document {inputs = inputs; dirArgs = dirArgs} s
+    c_document 
+      c
+      s
 
 
 end
@@ -1170,13 +1232,6 @@ end = struct
 
   let tt_scalar_type_definition _ _ = ()
 
-  let build_in_scalars = 
-    (S.ScalarTypeDefinition {description = None; name = "String"; directives = []})
-    ::(S.ScalarTypeDefinition {description = None; name = "Int"; directives = []})
-    ::(S.ScalarTypeDefinition {description = None; name = "Float"; directives = []})
-    ::(S.ScalarTypeDefinition {description = None; name = "Boolean"; directives = []})
-    ::(S.ScalarTypeDefinition {description = None; name = "ID"; directives = []})
-    ::[]
 
   let tt_directive_definition_1 (c: ctx) (d: S.directive_definition) : unit = 
     let dirs = 
@@ -1363,6 +1418,8 @@ type transformation = {
   tr: Schema.res;
   ts: S.schema_document;
 }
+
+type t = transformation
 
 let schema (t: transformation) : S.schema_document =  t.ts
 

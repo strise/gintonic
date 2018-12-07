@@ -1,1 +1,0 @@
-__tests__/gql_parser_test.cmj : src/gql_ast.cmj src/gql_lexer.cmj src/gql_parser.cmj

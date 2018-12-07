@@ -1,8 +1,11 @@
-# GraphQL transformation
+# gqltrans
 
 This projects implements a tool for transforming GraphQL schemas with GraphQL transformation langauge.
 
 The language is specified below.
+
+*Currently the language has mostly specified the syntax. Type-validation are
+still missing, but the general rule is that the outputted schema should be valid*
 
 
 ## Transfomration language

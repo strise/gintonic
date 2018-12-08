@@ -14,7 +14,7 @@
     "bundle": "rollup -c rollup.config.js",
     "watch:bundle": "rollup -w -c rollup.config.js"
   },
-  "main": "src/index.bs.js",
+  "main": "dist/bundle.js",
   "keywords": [
     "BuckleScript"
   ],

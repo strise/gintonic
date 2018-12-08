@@ -1,6 +1,6 @@
 {
   "name": "@mitoai/gqltrans",
-  "version": "0.0.6",
+  "version": "0.0.7",
   "scripts": {
     "prepublishOnly": "npm run build && npm run bundle",
     "clean": "bsb -clean-world",
@@ -20,13 +20,13 @@
   ],
   "license": "MIT",
   "devDependencies": {
-    "rollup-plugin-commonjs": "^9.2.0",
-    "rollup-plugin-node-resolve": "^3.4.0",
     "@glennsl/bs-jest": "^0.4.5",
     "@glennsl/bs-json": "^3.0.0",
     "bs-platform": "^4.0.7",
     "graphql": "^14.0.2",
-    "rollup": "^0.67.4"
+    "rollup": "^0.67.4",
+    "rollup-plugin-commonjs": "^9.2.0",
+    "rollup-plugin-node-resolve": "^3.4.0"
   },
   "peerDependencies": {
     "graphql": "^14.0.2"

@@ -1,3 +1,5 @@
+def image = "eu.gcr.io/ntnu-smartmedia/gqltrans"
+
 defaultPodTemplate {
   podTemplate(
       containers: [

@@ -16,11 +16,11 @@
   ],
   "license": "MIT",
   "dependencies": {
-    "@glennsl/bs-json": "^3.0.0"
+    "@glennsl/bs-json": "^3.0.0",
+    "bs-platform": "^4.0.7"
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.5",
-    "bs-platform": "^4.0.7",
     "graphql": "^14.0.2"
   },
   "peerDependencies": {

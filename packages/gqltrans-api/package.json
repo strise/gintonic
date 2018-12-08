@@ -9,7 +9,7 @@
   },
   "dependencies": {
     "@koa/cors": "^2.2.2",
-    "@mitoai/gqltrans": "^0.0.1",
+    "@mitoai/gqltrans": "file:../gqltrans",
     "config": "^3.0.0",
     "express-graphql": "^0.7.1",
     "graphql": "^14.0.2",

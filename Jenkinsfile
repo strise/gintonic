@@ -18,11 +18,13 @@ defaultPodTemplate {
         stage("Checkout source") {
           scmVars = checkout scm
         }
+        
+        
         if (env.TAG_NAME) {
           stage("Build") {
-            def version = tagToVersion(env.TAG_NAME)
+            def version = tagToVersion env.TAG_NAME
             if (version) {
-              dockerBuildAndPush image: image, tag: (env.TAG_NAME.substring(1)), buildArgs: [VERSION: (env.TAG_NAME.substring(1))]
+              dockerBuildAndPush image: image, tag: version, buildArgs: [VERSION: version]
             } else {
               print "Not a version tag, skipping..."
             }

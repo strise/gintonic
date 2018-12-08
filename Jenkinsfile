@@ -15,8 +15,7 @@ defaultPodTemplate {
 
         stage("Checkout source") {
           scmVars = checkout scm
-          print scmVars
-          print env
+          print env.TAG_NAME
         }
         stage("Setup") {
           container("node") {

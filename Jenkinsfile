@@ -15,27 +15,27 @@ defaultPodTemplate {
 
         stage("Checkout source") {
           scmVars = checkout scm
-          print env.TAG_NAME
         }
-        stage("Setup") {
-          container("node") {
-            sh 'echo ". /root/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile'
+        if (env.TAG_NAME) {
+          stage("Build") {
+            dockerBuildAndPush image: image, tag: env.TAG_NAME, buildArgs: [VERSION: env.TAG_NAME]
           }
-        }
-        stage("Install") {
-          container("node") {
-            sh '. ~/.profile \
-            &&  npm i -g npm lerna@3.6.0 \
-            &&  npm run bootstrap \
-            &&  npm run build'
+        } else {
+          stage("Setup") {
+            container("node") {
+              sh 'echo ". /root/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile'
+            }
           }
-        }
-        stage("Test") {
-          npm 'test'
-        }
-        stage("Build") {
-          if (scmVars.GIT_TAG_NAME) {
-            print "ADD BUILD"
+          stage("Install") {
+            container("node") {
+              sh '. ~/.profile \
+              &&  npm i -g npm lerna@3.6.0 \
+              &&  npm run bootstrap \
+              &&  npm run build'
+            }
+          }
+          stage("Test") {
+            npm 'test'
           }
         }
       }

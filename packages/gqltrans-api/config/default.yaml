@@ -6,3 +6,6 @@ auth:
   api: https://auth.mito.ai/graphql
   clientId: ID
   clientSecret: SECRET
+
+schema: null
+transformation: null

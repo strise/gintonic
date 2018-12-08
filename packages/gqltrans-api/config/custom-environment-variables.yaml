@@ -4,3 +4,6 @@ upstream:
 auth:
   clientId: AUTH_CLIENT_ID
   clientSecret: AUTH_CLIENT_SECRET
+
+schema: SCHEMA
+transformation: TRANSFORMATION

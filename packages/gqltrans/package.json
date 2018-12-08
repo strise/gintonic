@@ -1,6 +1,6 @@
 {
   "name": "@mitoai/gqltrans",
-  "version": "0.0.1",
+  "version": "0.0.0",
   "scripts": {
     "clean": "bsb -clean-world",
     "build": "bsb -make-world",
@@ -14,17 +14,20 @@
   "keywords": [
     "BuckleScript"
   ],
-  "author": "",
   "license": "MIT",
   "dependencies": {
     "@glennsl/bs-json": "^3.0.0"
   },
   "devDependencies": {
     "@glennsl/bs-jest": "^0.4.5",
-    "graphql": "^14.0.2",
-    "bs-platform": "^4.0.7"
+    "bs-platform": "^4.0.7",
+    "graphql": "^14.0.2"
   },
   "peerDependencies": {
     "graphql": "^14.0.2"
+  },
+  "author": "Christian Budde Christensen <me@budde377.io>",
+  "publishConfig": {
+    "access": "public"
   }
 }

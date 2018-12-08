@@ -24,8 +24,7 @@ defaultPodTemplate {
         stage("Install") {
           container("node") {
             sh '. ~/.profile \
-            &&  npm i -g npm \
-            &&  npm ci \
+            &&  npm i -g npm lerna@3.6.0 \
             &&  npm run bootstrap'
           }
         }

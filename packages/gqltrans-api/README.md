@@ -1,3 +1,3 @@
 # GQLTrans API
 
-Starts a server!
+The GQLTrans API application.

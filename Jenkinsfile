@@ -15,6 +15,8 @@ defaultPodTemplate {
 
         stage("Checkout source") {
           scmVars = checkout scm
+          print scmVars
+          print env
         }
         stage("Setup") {
           container("node") {
@@ -25,17 +27,17 @@ defaultPodTemplate {
           container("node") {
             sh '. ~/.profile \
             &&  npm i -g npm lerna@3.6.0 \
-            &&  npm run bootstrap'
-          }
-        }
-        stage("Build") {
-          container("node") {
-            sh '. ~/.profile \
+            &&  npm run bootstrap \
             &&  npm run build'
           }
         }
         stage("Test") {
           npm 'test'
+        }
+        stage("Build") {
+          if (scmVars.GIT_TAG_NAME) {
+            print "ADD BUILD"
+          }
         }
       }
     }

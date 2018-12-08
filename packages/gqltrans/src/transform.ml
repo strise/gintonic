@@ -1520,6 +1520,8 @@ end = struct
       selectionSet = t_selection_set c (tpe_to_name nfd.tpe) f.selectionSet;
     }
 
+  and t_field_internal (c: ctx) (t: S.name) (f: S.field): S.field = if starts_with f.name "__" then f else t_field c t f
+
   and t_inline_fragment (c: ctx) (t: S.name) (f: S.inline_fragment) : S.inline_fragment = 
     let condition = Utils.opt_map (fun n -> td_to_name (c.find_type n)) f.condition in
     let selections = t_selection_set c (match f.condition with | Some c -> c | None -> t) f.selectionSet in
@@ -1528,16 +1530,19 @@ end = struct
       selectionSet = selections;
       directives = List.map (t_directive c) f.directives
     }
+  and t_inline_fragment_internal (c: ctx) (t: S.name) (f: S.inline_fragment) : S.inline_fragment = 
+    match f.condition with
+    | Some tc -> if starts_with tc "__" then f else t_inline_fragment c t f
+    | _ -> t_inline_fragment_internal c t f
 
-
-  and t_selection (c: ctx) (t: S.name) (s: S.selection) (acc: S.selection list): S.selection list =
+  and t_selection (c: ctx) (t: S.name) (s: S.selection): S.selection =
     match s with
-    | S.Field f -> if starts_with f.name "__" then acc else (S.Field (t_field c t f))::acc
-    | S.InlineFragment f -> (S.InlineFragment (t_inline_fragment c t f))::acc
-    | S.FragmentSpread f -> (S.FragmentSpread (t_fragment_spread c f))::acc
+    | S.Field f -> S.Field (t_field_internal c t f)
+    | S.InlineFragment f -> (S.InlineFragment (t_inline_fragment_internal c t f))
+    | S.FragmentSpread f -> (S.FragmentSpread (t_fragment_spread c f))
 
   and t_selection_set (c: ctx) (t: S.name) (o: S.selection list): S.selection list = 
-    List.fold_right (t_selection c t ) o []
+    List.map (t_selection c t ) o
 
   let t_operation (c: ctx) (o: S.operation_definition): S.operation_definition = 
     let t = (c.find_operation o.tpe).tpe in
@@ -1554,8 +1559,14 @@ end = struct
       condition = td_to_name (c.find_type f.condition)
     }
 
+  let t_fragment_internal (c: ctx) (f: S.fragment_definition): S.fragment_definition =
+    if starts_with f.condition "__" then
+      f
+    else 
+      t_fragment c f
+
   let t_fragments (c: ctx) (fs: S.fragment_definition list): S.fragment_definition list = 
-    List.map (t_fragment c) fs
+    List.map (t_fragment_internal c) fs
 
   let c (t: transformation) (e: S.executable_document): S.executable_document  = 
     let c = {

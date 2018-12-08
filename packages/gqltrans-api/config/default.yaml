@@ -1,0 +1,8 @@
+upstream:
+  api: https://graphql.mito.ai/internal/graphql
+
+auth:
+  apiId: 5981b2bdaa6f77263c91ed9a
+  api: https://auth.mito.ai/graphql
+  clientId: ID
+  clientSecret: SECRET

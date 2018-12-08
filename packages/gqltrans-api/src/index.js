@@ -1,10 +1,12 @@
 const fs = require('fs').promises
 const Koa = require('koa')
-const gqlt = require('@mitoai/gqltrans')
-const { graphql, printSchema, validate } = require('graphql')
 const Router = require('koa-router');
 const app = new Koa()
 const mw = require('./mw')
+const cors = require('@koa/cors');
+
+app.use(cors());
+
 
 async function setup() {
     const schema = (await fs.readFile('./schema.graphql')).toString("utf-8")

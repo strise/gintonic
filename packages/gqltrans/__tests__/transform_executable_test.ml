@@ -1,6 +1,8 @@
 open Jest
 open Expect
 
+external introspectionQ: string = "introspectionQuery" [@@bs.module "graphql"]
+
 let parse_schema = Gql_parser.document Gql_lexer.read
 
 let parse_executable_string(s: string) = Gql_ast.document_to_executable_document (parse_schema (Lexing.from_string s))
@@ -14,12 +16,57 @@ let parse_trans_string(s: string) = parse_trans (Lexing.from_string s)
 
 let testPrograms n (schema: string) (t: string) (p1: string) (p2: string): unit =
   test n (
-    fun () -> expect (Transform.executable (Transform.transform (parse_schema_string schema) (parse_trans_string t)) (parse_executable_string p1)) |> toEqual (parse_executable_string p2)
+    fun () -> expect (Js_utils.executable_document_to_js (
+        Transform.executable (Transform.transform (parse_schema_string schema) (parse_trans_string t)) (parse_executable_string p1)))
+              |> toEqual (Js_utils.executable_document_to_js (parse_executable_string p2))
   )
 
 let () =
   describe "Transform" (fun () -> 
       describe "executable" (fun () -> 
+          testPrograms
+            "introspection"
+            "
+            type Query {
+              field: String
+            }
+            "
+            "
+            transform type Query {
+              f1: field
+            }
+            "
+            introspectionQ
+            introspectionQ;
+          testPrograms
+            "inline internal"
+            "
+            type Query {
+              field: String
+            }
+            "
+            "
+            transform type Query {
+              f1: field
+            }
+            "
+            "
+              query IntrospectionQuery {
+                ... on __Type {
+                  kind
+                }
+              }
+
+            "
+            "
+            query IntrospectionQuery {
+                ... on __Type {
+                  kind
+                }
+              }
+
+            ";
+
           testPrograms
             "field alias"
             "
@@ -239,6 +286,7 @@ let () =
             query
             {
               field
+              __someInternalField
             }
             ";
 

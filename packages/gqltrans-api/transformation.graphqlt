@@ -1,3 +1,13 @@
 transform schema {
     query
 }
+
+
+transform type Query {
+    ebi: entityById
+}
+
+"""
+The best entity!
+"""
+transform type E: Entity

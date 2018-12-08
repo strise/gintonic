@@ -1,0 +1,6 @@
+upstream:
+  api: UPSTREAM_API
+
+auth:
+  clientId: AUTH_CLIENT_ID
+  clientSecret: AUTH_CLIENT_SECRET

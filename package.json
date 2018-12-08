@@ -5,7 +5,7 @@
 	"scripts": {
 		"test": "lerna run test",
 		"build": "lerna run build",
-		"bootstrap": "lerna bootstrap --hoist"
+		"bootstrap": "lerna bootstrap --hoist --no-package-lock"
 	},
 	"name": "graphql-transformer"
 }

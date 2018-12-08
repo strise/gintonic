@@ -20,7 +20,13 @@ defaultPodTemplate {
         }
         if (env.TAG_NAME) {
           stage("Build") {
-            dockerBuildAndPush image: image, tag: env.TAG_NAME, buildArgs: [VERSION: env.TAG_NAME]
+            def condition = (env.TAG_NAME ==~ /v[0-9]+\.[0-9]+\.[0-9]+/)
+            if (condition)​​ {
+              def version = env.TAG_NAME.substring(1)
+              dockerBuildAndPush image: image, tag: version, buildArgs: [VERSION: version]
+            } else {
+              print "Not a version tag, skipping..."
+            }
           }
         } else {
           stage("Setup") {

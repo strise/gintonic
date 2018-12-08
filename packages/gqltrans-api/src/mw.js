@@ -59,7 +59,7 @@ async function exec(transformation, schema, query, variables, operationName) {
     null,
     variables,
     operationName,
-    null
+    (value, x1, x2, { path: { key } }) => value[key]
   )
   const errors = [...(result.errors || []), ...((upstreamResult.errors || []).map(({ locations, ...rest }) => rest))]
   return {

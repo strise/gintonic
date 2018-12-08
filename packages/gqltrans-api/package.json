@@ -20,7 +20,7 @@
     "node-fetch": "^2.3.0"
   },
   "bin": {
-    "gqltrans": "src/cli.js"
+    "gqltrans": "node --stack-size 1000000000 dist/bundle.js"
   },
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",

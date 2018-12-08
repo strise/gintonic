@@ -1,7 +1,4 @@
-src/**/*.ml
-src/**/*.mli
-src/**/*.mll
-src/**/*.mly
+src
 __tests__
 *.exe
 *.obj

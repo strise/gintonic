@@ -20,7 +20,7 @@
     "node-fetch": "^2.3.0"
   },
   "bin": {
-    "gqltrans": "bin/cli.js"
+    "gqltrans": "bin/cli.sh"
   },
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",

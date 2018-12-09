@@ -1,6 +1,6 @@
 {
   "name": "@mitoai/gqltrans",
-  "version": "0.0.18",
+  "version": "0.0.19",
   "scripts": {
     "prepublishOnly": "npm run build && npm run bundle",
     "clean": "bsb -clean-world",

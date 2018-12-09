@@ -1,9 +1,10 @@
 upstream:
-  api: UPSTREAM_API
+  url: UPSTREAM_URL
 
 auth:
   clientId: AUTH_CLIENT_ID
   clientSecret: AUTH_CLIENT_SECRET
+  audience: AUTH_AUDIENCE
 
 schema: SCHEMA
 transformation: TRANSFORMATION

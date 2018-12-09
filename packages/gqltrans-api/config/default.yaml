@@ -1,11 +1,13 @@
 upstream:
-  api: https://graphql.mito.ai/internal/graphql
+  url: https://graphql.mito.ai/internal/graphql
+  id: 5981b2bdaa6f77263c91ed9a
 
 auth:
-  apiId: 5981b2bdaa6f77263c91ed9a
-  api: https://auth.mito.ai/graphql
+  domain: mito.eu.auth0.com
+  url: https://auth.mito.ai/graphql
   clientId: ID
   clientSecret: SECRET
+  audience: https://demo.graphql.mito.ai
 
 schema: null
 transformation: null

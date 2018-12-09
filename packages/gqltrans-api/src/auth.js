@@ -1,10 +1,10 @@
 const fetch = require('node-fetch')
 const config = require('config')
 
-const apiUrl = config.get('auth.api')
+const apiUrl = config.get('auth.url')
 const clientId = config.get('auth.clientId')
 const clientSecret = config.get('auth.clientSecret')
-const apiId = config.get('auth.apiId')
+const upstreamId = config.get('upstream.id')
 
 let cache = null
 
@@ -19,10 +19,10 @@ module.exports = async function () {
       'Content-Type': 'application/json'
     },
     body: JSON.stringify({
-      variables: { clientId, clientSecret, apiId },
+      variables: { clientId, clientSecret, upstreamId },
       query: `
-            mutation ($apiId: ID! $clientId: ID! $clientSecret: String!){
-                token: generateClientAccessToken(api: $apiId clientId: $clientId clientSecret: $clientSecret) {
+            mutation ($upstreamId: ID! $clientId: ID! $clientSecret: String!){
+                token: generateClientAccessToken(api: $upstreamId clientId: $clientId clientSecret: $clientSecret) {
                   expires token
                 }
               }

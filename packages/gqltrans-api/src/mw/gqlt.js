@@ -1,17 +1,17 @@
 
 const { getGraphQLParams } = require('express-graphql')
-const { Source, execute, parse, validate, validateSchema } = require('graphql')
+const { Source, execute, parse, validate } = require('graphql')
 const { print } = require('graphql/language')
-const { transformQuery, transformSchema, buildSchema, originalSchema } = require('@mitoai/gqltrans')
+const { transformQuery, transformSchema, buildSchema } = require('@mitoai/gqltrans')
 const fetch = require('node-fetch')
 const httpError = require('http-errors')
 const config = require('config')
-const auth = require('./auth')
+const auth = require('../auth')
 
-const apiUrl = config.get('upstream.api')
+const apiUrl = config.get('upstream.url')
 
-async function fetchFromUpstream(transformation, originalQueryAst, variables, operationName) {
-  const token = await auth()
+async function fetchFromUpstream(transformation, originalQueryAst, variables, operationName, authorized) {
+  const token = authorized ? await auth() : null
   try {
     const newQueryAst = transformQuery(transformation, originalQueryAst)
     const res = await fetch(apiUrl, {
@@ -25,7 +25,7 @@ async function fetchFromUpstream(transformation, originalQueryAst, variables, op
       ),
       headers: {
         "Content-Type": "application/json",
-        "Authorization": `Bearer ${token}`
+        "Authorization": token ? `Bearer ${token}` : undefined
       }
     })
     return await res.json()
@@ -35,7 +35,7 @@ async function fetchFromUpstream(transformation, originalQueryAst, variables, op
 
 }
 
-async function exec(transformation, schema, query, variables, operationName) {
+async function exec(transformation, schema, query, variables, operationName, authorized) {
   if (!query) {
     throw httpError(400, 'Must provide query string.');
   }
@@ -51,7 +51,7 @@ async function exec(transformation, schema, query, variables, operationName) {
     return { errors: ves }
   }
   // TODO check mutation vs method
-  const upstreamResult = await fetchFromUpstream(transformation, documentAst, variables, operationName)
+  const upstreamResult = await fetchFromUpstream(transformation, documentAst, variables, operationName, authorized)
   const result = await execute(
     schema,
     documentAst,
@@ -69,7 +69,7 @@ async function exec(transformation, schema, query, variables, operationName) {
 
 }
 
-module.exports = function gqlmiddleware({ schema, transformation }) {
+module.exports = function ({ schema, transformation }) {
   const t = transformSchema(schema, transformation)
   const s = buildSchema(t)
   return async ctx => {
@@ -83,7 +83,7 @@ module.exports = function gqlmiddleware({ schema, transformation }) {
       throw httpError(400, 'Must provide query string.');
     }
 
-    const result = await exec(t, s, query, variables, operationName)
+    const result = await exec(t, s, query, variables, operationName, !!ctx.state.authorized)
     ctx.response.type = 'application/json';
     ctx.response.body = JSON.stringify(result);
   }

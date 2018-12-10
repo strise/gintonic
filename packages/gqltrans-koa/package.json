@@ -11,6 +11,7 @@
     "Koa",
     "Middleware"
   ],
+  "repository": "https://github.com/mitoai/graphql-transformer",
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",
   "dependencies": {

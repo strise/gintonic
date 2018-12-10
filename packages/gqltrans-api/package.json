@@ -8,6 +8,7 @@
     "start": "node ./src",
     "dev": "nodemon --stack-size=10000000000000 ./src/index.js"
   },
+  "repository": "https://github.com/mitoai/graphql-transformer",
   "dependencies": {
     "@koa/cors": "^2.2.2",
     "@mitoai/gqltrans-koa": "file:../gqltrans-koa",

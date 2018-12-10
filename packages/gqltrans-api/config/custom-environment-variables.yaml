@@ -5,6 +5,7 @@ auth:
   clientId: AUTH_CLIENT_ID
   clientSecret: AUTH_CLIENT_SECRET
   audience: AUTH_AUDIENCE
+  domain: AUTH_DOMAIN
 
 schema: SCHEMA
 transformation: TRANSFORMATION

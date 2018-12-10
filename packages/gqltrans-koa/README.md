@@ -1,6 +1,14 @@
 # GraphQL Transformer Koa-middleware
 
-Integrate with *gqltrans* with this koa middleware. By providing
+Start using GraphQL Transformer with the koa middleware. 
+
+## Getting started
+Install the koa middleware
+```bash
+npm i @mitoai/gqltrans-koa
+```
+
+By providing
 a schema and transformation (as a string), and a fetcher for executing
 source queries, this middleware will expose a GraphQL target
 Api returing data from the source API.
@@ -30,11 +38,14 @@ async function fetcher ({query, variables, operationName, ctx}) {
   return res.json()
 }
 
-app.use(gqlt({
+const router = new Router()
+router.all('/graphql', gqlt({
   schema: schemaString,
   transformation: transformationString,
   fetcher
 }))
+
+app.use(router.routes()).use(router.allowedMethods())
 
 app.listen(1337)
 

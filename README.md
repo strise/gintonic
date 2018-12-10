@@ -324,6 +324,12 @@ preserving the output structure, thus making field resolution trivial.
 Notice that the target schema should always be served from a GraphQL API resolving meta-fields and validating 
 incoming queries against the target schema.
 
+## Koa middleware
+
+You may easily integrate using the provided koa middleware available as a submodule. Read more at
+[gqltrans-koa](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans-koa).
+
+
 ## Reference API implementation
 
 The sub-project contains an API reference implementation that uses *gqltrans* and deploys an api based

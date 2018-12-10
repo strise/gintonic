@@ -35,6 +35,10 @@ async function fetchFromUpstream(transformation, originalQueryAst, variables, op
 
 }
 
+function pathBuilder({prev, key}) {
+  return `${prev ? pathBuilder(prev) : ''}.${key}`
+}
+
 async function exec(transformation, schema, query, variables, operationName, authorized) {
   if (!query) {
     throw httpError(400, 'Must provide query string.');
@@ -50,8 +54,15 @@ async function exec(transformation, schema, query, variables, operationName, aut
   if (ves.length) {
     return { errors: ves }
   }
-  // TODO check mutation vs method
   const upstreamResult = await fetchFromUpstream(transformation, documentAst, variables, operationName, authorized)
+  const [locatedErrors, unlocatedErrors] = (upstreamResult.errors || [])
+    .reduce(([accL, accUnL], {message, path}) => {
+    if (!path) {
+      return [accL, [...accUnL, {message}]]
+    }
+    const p = path.reduce((acc, p) => `${acc}.${p}`, '')
+    return [{...accL, [p]: message}, accUnL]
+  }, [{}, []])
   const result = await execute(
     schema,
     documentAst,
@@ -59,9 +70,16 @@ async function exec(transformation, schema, query, variables, operationName, aut
     null,
     variables,
     operationName,
-    (value, x1, x2, { path: { key } }) => value[key]
+    (value, x1, x2, { path }) => {
+      const err = locatedErrors[pathBuilder(path)]
+      if (err) {
+        throw new Error(err)
+      }
+      return value[path.key]
+    }
   )
-  const errors = [...(result.errors || []), ...((upstreamResult.errors || []).map(({ locations, ...rest }) => rest))]
+
+  const errors = [...(result.errors || []), ...unlocatedErrors ]
   return {
     data: result.data,
     errors: errors.length ? errors : undefined

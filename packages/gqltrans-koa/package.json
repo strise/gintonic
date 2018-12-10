@@ -6,6 +6,11 @@
   "scripts": {
     "test": "echo \"lol\""
   },
+  "keywords": [
+    "GraphQL",
+    "Koa",
+    "Middleware"
+  ],
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",
   "dependencies": {

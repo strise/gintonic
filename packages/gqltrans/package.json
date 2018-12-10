@@ -16,7 +16,8 @@
   },
   "main": "dist/bundle.js",
   "keywords": [
-    "BuckleScript"
+    "BuckleScript",
+    "GraphQL"
   ],
   "license": "MIT",
   "devDependencies": {

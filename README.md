@@ -4,6 +4,8 @@ This projects contains our efforts to build scalable and maintainable GraphQL tr
 defining a new DSL, which is described and implemented at the 
 [gqltrans](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans) sub-project.
 
+[View demo here](https://mito.ai/gqlt)
+
 Given a transformation, this implementation allows you to do two things:
 
 1. Apply the transformation to a source schema thus generating a new target schema.

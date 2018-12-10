@@ -294,7 +294,7 @@ type Query {
 
 # Transformation
 transform type Query {
-    f: field(arg = "locked"): String    # Field aliasing and argument locking
+    f: field(arg = "locked")        # Field aliasing and argument locking
 }
 
 # Target schema

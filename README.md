@@ -55,6 +55,7 @@ query  {
 ```
 Notice that the result of the generated query is valid output for the previous query.
 
+## Transformations
 
 The language currently supports five transformation features, which can be applied to the different types and schema when
 appropriate:
@@ -68,7 +69,7 @@ appropriate:
 For each GraphQL type definition (object, union, interface, enum, and input object) and schema definition, there
 exists a corresponding transformation:
 
-## Schema transformation
+### Schema transformation
 
 The schema transformation supports schema operation filtering. This effectively allows you to exclude root operations
 (query, mutation, or subscription) from your target API.
@@ -95,7 +96,7 @@ schema {
 
 This is a crude but effective way to disallow users from making any mutation calls on your API.
 
-## Object type transformation
+### Object type transformation
 
 Object type transformations support field-filtering, field-aliasing, documenting, and input locking on arguments.
 
@@ -140,7 +141,7 @@ notice that a field can be transformed arbitrary number of times. The only limit
 must be valid.
 
 
-## Interface type transformation
+### Interface type transformation
 
 The interface type transformation supports the same features as the object type transformation. 
 
@@ -186,7 +187,7 @@ Notice that the validity of a transformation heavily relies in the validity of t
 It is up to the implementer to ensure that all transformations are generating a valid target schema and that 
 all implementing types have the appropriate fields.
 
-## Scalar and Union transformations
+### Scalar and Union transformations
 
 The scalar and union transformations all support documenting and type-aliasing.
 
@@ -212,7 +213,7 @@ union U = T1 | T2 | T3
 scalar S
 ``` 
 
-## Enum transformation
+### Enum transformation
 
 Similarly to scalar and union transformations, the enum transformation supports documenting and type-aliasing. It
 does however also support enum value documentation.
@@ -242,7 +243,7 @@ enum E {
 
 ``` 
 
-## Input object transformation
+### Input object transformation
 
 The input object transformation supports type-aliasing, documenting, and input locking:
 
@@ -276,6 +277,52 @@ input I {
 While we could consider doing field aliasing, notice that the input object is fundamentally different from objects.
 Furthermore, remember that the target schema should always be valid. Therefor locking all fields will yield
 an input object with no fields in the target schema. This is not valid. 
+
+## Query transformation
+
+The schema transformations would mean little without the ability to link actually retrieve data from the target API.
+Therefor graphql-transformer allows you to transform a query against the target api to a query against the source API, 
+where the result can be returned directly to the original caller.
+
+E.g. with the following schemas and transformation:
+
+```graphql
+# Source schema
+type Query {
+    field(arg: String): String
+}
+
+# Transformation
+transform type Query {
+    f: field(arg = "locked"): String    # Field aliasing and argument locking
+}
+
+# Target schema
+type Query {
+    f: String
+}
+
+```
+
+an incoming query to the target schema would be transformed into
+```graphql
+# Query against the target schema
+query {
+    f
+}
+
+# Transformed query
+
+query {
+    f: field(arg: "locked")
+}
+
+```
+
+preserving the output structure, thus making field resolution trivial.
+
+Notice that the target schema should always be served from a GraphQL API resolving meta-fields and validating 
+incoming queries against the target schema.
 
 ## Reference API implementation
 

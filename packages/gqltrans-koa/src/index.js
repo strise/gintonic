@@ -1,45 +1,21 @@
-
-const { getGraphQLParams } = require('express-graphql')
-const { Source, execute, parse, validate } = require('graphql')
-const { print } = require('graphql/language')
 const { transformQuery, transformSchema, buildSchema } = require('@mitoai/gqltrans')
-const fetch = require('node-fetch')
-const httpError = require('http-errors')
-const config = require('config')
-const auth = require('../auth')
+const { print, Source, execute, parse, validate } = require('graphql')
+const { getGraphQLParams } = require('express-graphql')
 
-const apiUrl = config.get('upstream.url')
-
-async function fetchFromUpstream(transformation, originalQueryAst, variables, operationName, authorized) {
-  const token = authorized ? await auth() : null
+async function fetchFromUpstream({transformation, query, variables, fetcher, operationName}) {
   try {
-    const newQueryAst = transformQuery(transformation, originalQueryAst)
-    const res = await fetch(apiUrl, {
-      method: 'POST',
-      body: JSON.stringify(
-        {
-          query: print(newQueryAst),
-          variables,
-          operationName
-        }
-      ),
-      headers: {
-        "Content-Type": "application/json",
-        "Authorization": token ? `Bearer ${token}` : undefined
-      }
-    })
-    return await res.json()
+    const newQueryAst = transformQuery(transformation, query)
+    return await fetcher({query: print(newQueryAst), variables, operationName})
   } catch (err) {
     return { errors: [err] }
   }
-
 }
 
 function pathBuilder({prev, key}) {
   return `${prev ? pathBuilder(prev) : ''}.${key}`
 }
 
-async function exec(transformation, schema, query, variables, operationName, authorized) {
+async function exec({transformation, schema, query, variables, operationName, fetcher}) {
   if (!query) {
     throw httpError(400, 'Must provide query string.');
   }
@@ -54,15 +30,21 @@ async function exec(transformation, schema, query, variables, operationName, aut
   if (ves.length) {
     return { errors: ves }
   }
-  const upstreamResult = await fetchFromUpstream(transformation, documentAst, variables, operationName, authorized)
+  const upstreamResult = await fetchFromUpstream({
+    transformation,
+    fetcher,
+    query: documentAst,
+    variables,
+    operationName,
+  })
   const [locatedErrors, unlocatedErrors] = (upstreamResult.errors || [])
     .reduce(([accL, accUnL], {message, path}) => {
-    if (!path) {
-      return [accL, [...accUnL, {message}]]
-    }
-    const p = path.reduce((acc, p) => `${acc}.${p}`, '')
-    return [{...accL, [p]: message}, accUnL]
-  }, [{}, []])
+      if (!path) {
+        return [accL, [...accUnL, {message}]]
+      }
+      const p = path.reduce((acc, p) => `${acc}.${p}`, '')
+      return [{...accL, [p]: message}, accUnL]
+    }, [{}, []])
   const result = await execute(
     schema,
     documentAst,
@@ -87,7 +69,7 @@ async function exec(transformation, schema, query, variables, operationName, aut
 
 }
 
-module.exports = function ({ schema, transformation }) {
+module.exports = function ({ schema, transformation, fetcher}) {
   const t = transformSchema(schema, transformation)
   const s = buildSchema(t)
   return async ctx => {
@@ -101,7 +83,14 @@ module.exports = function ({ schema, transformation }) {
       throw httpError(400, 'Must provide query string.');
     }
 
-    const result = await exec(t, s, query, variables, operationName, !!ctx.state.authorized)
+    const result = await exec({
+      fetcher: (args) => fetcher({...args, ctx}),
+      transformation: t,
+      schema: s,
+      query,
+      variables,
+      operationName
+    })
     ctx.response.type = 'application/json';
     ctx.response.body = JSON.stringify(result);
   }

@@ -5,13 +5,13 @@
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"lol\"",
-    "start": "node ./src"
+    "start": "node ./src",
+    "dev": "nodemon --stack-size=10000000000000 ./src/index.js"
   },
   "dependencies": {
     "@koa/cors": "^2.2.2",
-    "@mitoai/gqltrans": "file:../gqltrans",
+    "@mitoai/gqltrans-koa": "file:../gqltrans-koa",
     "config": "^3.0.0",
-    "express-graphql": "^0.7.1",
     "graphql": "^14.0.2",
     "http-errors": "^1.7.1",
     "js-yaml": "^3.12.0",
@@ -20,6 +20,9 @@
     "koa": "^2.6.2",
     "koa-router": "^7.4.0",
     "node-fetch": "^2.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.18.7"
   },
   "bin": {
     "gqltrans": "bin/cli.sh"

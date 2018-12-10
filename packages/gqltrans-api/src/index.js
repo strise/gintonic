@@ -2,17 +2,20 @@ const fs = require('fs').promises
 const Koa = require('koa')
 const Router = require('koa-router');
 const app = new Koa()
-const gqlt = require('./mw/gqlt')
+const gqlt = require('@mitoai/gqltrans-koa')
 const verify = require('./mw/verify')
 const cors = require('@koa/cors');
 const config = require('config')
 const fetch = require('node-fetch')
 const { introspectionQuery, buildClientSchema, printSchema } = require('graphql')
+const auth = require('./auth')
+
+const upstreamUrl = config.get('upstream.url')
 
 app.use(cors());
 
 async function fetchSchema() {
-  const res = await fetch(config.get('upstream.url'), {
+  const res = await fetch(upstreamUrl, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
@@ -55,7 +58,20 @@ async function setup() {
   const { schema, transformation } = await c()
   app.use(verify())
   const router = new Router();
-  router.all('/graphql', gqlt({ schema, transformation}))
+  router.all('/graphql', gqlt({
+    schema,
+    transformation,
+    fetcher: async ({ctx, query, variables, operationName}) => (
+      await (await fetch(upstreamUrl, {
+        method: 'POST',
+        body: JSON.stringify({query, variables, operationName}),
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": ctx.state.authorized ? `Bearer ${await auth()}` : undefined
+        }
+      })).json()
+    )
+  }))
   app.use(router.routes()).use(router.allowedMethods())
   console.log('Listening on port 3456')
   app.listen(3456);

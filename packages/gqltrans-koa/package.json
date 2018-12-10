@@ -1,0 +1,21 @@
+{
+  "name": "@mitoai/gqltrans-koa",
+  "version": "0.1.0",
+  "description": "Koa middleware for gqltrans",
+  "main": "src/index.js",
+  "scripts": {
+    "test": "echo \"lol\""
+  },
+  "author": "Christian Budde Christensen <me@budde377.io>",
+  "license": "MIT",
+  "dependencies": {
+    "@mitoai/gqltrans": "file:../gqltrans",
+    "express-graphql": "^0.7.1"
+  },
+  "peerDependencies": {
+    "graphql": "^14.0.2"
+  },
+  "devDependencies": {
+    "graphql": "^14.0.2"
+  }
+}

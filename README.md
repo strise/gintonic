@@ -242,7 +242,7 @@ enum E {
 
 ``` 
 
-# Input object transformation
+## Input object transformation
 
 The input object transformation supports type-aliasing, documenting, and input locking:
 

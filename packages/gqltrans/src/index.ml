@@ -3,7 +3,7 @@ let print_position (lexbuf: Lexing.lexbuf) =
   let start_p = Lexing.lexeme_start_p lexbuf in
   let end_p = Lexing.lexeme_end_p lexbuf in
   Printf.sprintf "line %d: char %d..%d: %s"
-    start_p.pos_lnum 
+    start_p.pos_lnum
     (start_p.pos_cnum - start_p.pos_bol + 1)
     (end_p.pos_cnum - end_p.pos_bol + 1)
 
@@ -11,18 +11,18 @@ let print_token (lexbuf: Lexing.lexbuf) (msg)=
   let tok = Lexing.lexeme lexbuf in
   Printf.sprintf "%s: Unexpected token %s" msg tok
 
-let parse_with_error_s lexbuf =  
-  try Gql_parser.document Gql_lexer.read lexbuf with 
-  | Gql_lexer.LexError message -> 
+let parse_with_error_s lexbuf =
+  try Gql_parser.document Gql_lexer.read lexbuf with
+  | Gql_lexer.LexError message ->
     Js.Exn.raiseError (print_position lexbuf  ("GraphQL syntax error: " ^ message))
-  | Gql_parser.Error -> 
+  | Gql_parser.Error ->
     Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL syntax error"))
 
-let parse_with_error_t lexbuf =  
-  try Trans_parser.document Trans_lexer.read lexbuf with 
-  | Trans_lexer.LexError message -> 
+let parse_with_error_t lexbuf =
+  try Trans_parser.document Trans_lexer.read lexbuf with
+  | Trans_lexer.LexError message ->
     Js.Exn.raiseError (print_position lexbuf  ("GraphQL transformer syntax error: " ^ message))
-  | Trans_parser.Error -> 
+  | Trans_parser.Error ->
     Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL transformer syntax error"))
 
 let transformSchema (s: string) (t: string): Transform.t =

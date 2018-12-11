@@ -471,18 +471,18 @@ end = struct
       let (s, res) = s_input_object_type_definition c (p1, r) in
       (S.InputObjectTypeDefinition s, {res with types = (s.name, d)::res.types})
 
-  let s_schema_document (c: ctx) ((d, r1): S.schema_document * res): (S.schema_document * res) = 
+  let s_schema_document (c: ctx) ((d, r): S.schema_document * res): (S.schema_document * res) =
 
     let 
-      (schema, r2) = s_schema_definition c (d.schema, r1)
+      (schema, r) = s_schema_definition c (d.schema, r)
     in
     let
-      (types, r3) = 
-      List.fold_right (listify (s_type_definition c)) d.types ([], r2)
+      (types, r) =
+      List.fold_right (listify (s_type_definition c)) d.types ([], r)
     in
     let
-      (directives, r4) = 
-      List.fold_right (listify (s_directive_definition c)) d.directives ([], r3)
+      (directives, r) =
+      List.fold_right (listify (s_directive_definition c)) d.directives ([], r)
     in
     (
       {
@@ -490,7 +490,7 @@ end = struct
         directives = directives;
         types = types
       },
-      r4
+      r
     )
 
   let find_generator (m: 'a -> 'b) (l: (string * 'a ) list) (n: string): 'b option =
@@ -1457,7 +1457,7 @@ end = struct
   exception Transformation_error of string
 
   type ctx = { 
-    find_operation: S.operation_type -> S.operation_type_definition; 
+    find_new_operation: S.operation_type -> S.operation_type_definition;
     find_type: S.name -> S.type_definition;
     find_field: S.name -> S.name -> S.field_definition;
     find_directive_argument: S.name -> S.name -> S.input_value_definition;
@@ -1553,11 +1553,11 @@ end = struct
     | S.InlineFragment f -> (S.InlineFragment (t_inline_fragment_internal c t f))
     | S.FragmentSpread f -> (S.FragmentSpread (t_fragment_spread c f))
 
-  and t_selection_set (c: ctx) (t: S.name) (o: S.selection list): S.selection list = 
+  and t_selection_set (c: ctx) (t: S.name) (o: S.selection list): S.selection list =
     List.map (t_selection c t ) o
 
   let t_operation (c: ctx) (o: S.operation_definition): S.operation_definition = 
-    let t = (c.find_operation o.tpe).tpe in
+    let t = (c.find_new_operation o.tpe).tpe in
     {
       o with 
       selectionSet = t_selection_set c t o.selectionSet;
@@ -1587,19 +1587,19 @@ end = struct
            try List.assoc n t.tr.types
            with Not_found -> raise (Transformation_error ("Failed to fetch type: " ^ n) )
         );
-      find_operation = 
+      find_new_operation =
         (fun o -> (
              match 
                Utils.find_opt
                  (fun ({operation}: S.operation_type_definition) -> operation = o)
-                 t.os.schema.operations
+                 t.ts.schema.operations
              with
              | Some t -> t
              | None -> raise (Transformation_error ("Failed to find operation " ^ (match o with | S.Mutation -> "mutation" | S.Query -> "query" | S.Subscription -> "subscription")))
            ));
       find_field = (
-        (fun o f -> 
-           try List.assoc (o, f) t.tr.fields 
+        (fun o f ->
+           try List.assoc (o, f) t.tr.fields
            with Not_found -> raise (Transformation_error ("Failed to find field: " ^ (o) ^ "." ^ f) )
         )
       );
@@ -1612,7 +1612,7 @@ end = struct
       find_input_field = (
         (fun o f -> 
            try List.assoc (o, f) t.tr.input_fields 
-           with Not_found -> raise (Transformation_error ("Failed to find field: " ^ (o) ^ "." ^ f) )
+           with Not_found -> raise (Transformation_error ("Failed to find input field: " ^ (o) ^ "." ^ f) )
         )
       );
       find_field_argument = (

@@ -66,6 +66,29 @@ let () =
               }
 
             ";
+          testPrograms
+            "rename Query"
+            "
+            type Query {
+              field: String
+            }
+            "
+            "
+            transform type Q: Query {
+              f1: field
+            }
+            "
+            "
+            query {
+              f1
+            }
+            "
+            "
+            query {
+              f1: field
+            }
+
+            ";
 
           testPrograms
             "field alias"

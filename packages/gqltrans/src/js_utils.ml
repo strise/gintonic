@@ -955,20 +955,24 @@ module Decode = struct
   let document json =
     match d json with
     | Document d -> d
-    | _ -> raise (Json.Decode.DecodeError "Expected document")
+    | _ -> raise (Json.Decode.DecodeError "Expected document.")
 
   let executable_document (s: Js.Json.t) = 
     let d = document s in
     Gql_ast.document_to_executable_document d
 end
 
-let document_to_js: S.document -> Js.Json.t = Encode.document
+exception Parse_error of string
+
+let document_to_js d: Js.Json.t =  Encode.document d
 
 let schema_document_to_js: S.schema_document -> Js.Json.t = Encode.schema_document
 
 let executable_document_to_js: S.executable_document -> Js.Json.t = Encode.executable_document
 
-let js_to_executable_document:  Js.Json.t -> S.executable_document = Decode.executable_document
+let js_to_executable_document:  Js.Json.t -> S.executable_document =
+  try Decode.executable_document with
+  | Json.Decode.DecodeError e -> raise (Parse_error e)
 
 external str : Js.Json.t -> string = "stringify" [@@bs.scope "JSON"][@@bs.val]
 

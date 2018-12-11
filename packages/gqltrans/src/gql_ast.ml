@@ -240,7 +240,10 @@ type operation_type =
   | Mutation
   | Subscription
 
-
+let operation_type_to_string o = match o with
+  | Query -> "query"
+  | Mutation -> "mutation"
+  | Subscription -> "subscription"
 
 type operation_type_definition = {
   operation: operation_type;

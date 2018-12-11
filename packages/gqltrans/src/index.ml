@@ -1,17 +1,52 @@
 
+let print_position (lexbuf: Lexing.lexbuf) =
+  let start_p = Lexing.lexeme_start_p lexbuf in
+  let end_p = Lexing.lexeme_end_p lexbuf in
+  Printf.sprintf "line %d: char %d..%d: %s"
+    start_p.pos_lnum 
+    (start_p.pos_cnum - start_p.pos_bol + 1)
+    (end_p.pos_cnum - end_p.pos_bol + 1)
+
+let print_token (lexbuf: Lexing.lexbuf) (msg)=
+  let tok = Lexing.lexeme lexbuf in
+  Printf.sprintf "%s: Unexpected token %s" msg tok
+
+let parse_with_error_s lexbuf =  
+  try Gql_parser.document Gql_lexer.read lexbuf with 
+  | Gql_lexer.LexError message -> 
+    Js.Exn.raiseError (print_position lexbuf  ("GraphQL syntax error: " ^ message))
+  | Gql_parser.Error -> 
+    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL syntax error"))
+
+let parse_with_error_t lexbuf =  
+  try Trans_parser.document Trans_lexer.read lexbuf with 
+  | Trans_lexer.LexError message -> 
+    Js.Exn.raiseError (print_position lexbuf  ("GraphQL transformer syntax error: " ^ message))
+  | Trans_parser.Error -> 
+    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL transformer syntax error"))
+
 let transformSchema (s: string) (t: string): Transform.t =
-  let gql_ast =  Gql_parser.document Gql_lexer.read (Lexing.from_string s) in
+  let gql_ast =  parse_with_error_s (Lexing.from_string s) in
   let schema_ast = Gql_ast.document_to_schema_document gql_ast in
-  let trans_ast = Trans_parser.document Trans_lexer.read (Lexing.from_string t) in
-  let transformation = Transform.transform schema_ast trans_ast in
+  let trans_ast = parse_with_error_t (Lexing.from_string t) in
+  let
+    transformation =
+    try  Transform.transform schema_ast trans_ast with
+    | Transform.Transform_error e -> Js.Exn.raiseError e
+    | Gql_ast.Invalid_document e -> Js.Exn.raiseError e
+  in
   transformation
 
-
 let transformQuery (t: Transform.t) (e: Js.Json.t): Js.Json.t =
-  let exdoc = Js_utils.js_to_executable_document e in
-  let ndoc = Transform.executable t exdoc in
+  try
+    let exdoc = Js_utils.js_to_executable_document e in
+    let ndoc = Transform.executable t exdoc in
 
-  Js_utils.executable_document_to_js ndoc
+    Js_utils.executable_document_to_js ndoc
+  with
+  | Js_utils.Parse_error m -> Js.Exn.raiseError m
+  | Transform.Query_transform_error m -> Js.Exn.raiseError m
+  | Gql_ast.Invalid_document e -> Js.Exn.raiseError e
 
 type graphql_schema
 

@@ -7,5 +7,6 @@ val js_to_executable_document: Js.Json.t -> Gql_ast.executable_document
 
 val executable_document_to_js: Gql_ast.executable_document -> Js.Json.t
 
-
 val print: Js.Json.t -> unit
+
+exception Parse_error of string

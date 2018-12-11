@@ -69,8 +69,8 @@ let () =
       baz\"\"\"" (BLOCK_STRING "
       foobar
       baz");
-      testLexError "\"" (LexError ("String not terminated", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
-      testLexError "\"\\q" (LexError ("Illegal character escape", {pos_fname = ""; pos_lnum = 1; pos_bol = 0; pos_cnum = 1}));
+      testLexError "\"" (LexError ("String not terminated"));
+      testLexError "\"\\q" (LexError ("Illegal character escape"));
       testSingleToken "foobar" (NAME "foobar");
       testSingleToken "truename" (NAME "truename");
       testSingleToken "foobar1234" (NAME "foobar1234");

@@ -2,6 +2,9 @@
 module T = Trans_ast
 module S = Gql_ast
 
+exception Transform_error of string
+exception Query_transform_error of string
+
 let build_in_scalars = 
   (S.ScalarTypeDefinition {description = None; name = "String"; directives = []})
   ::(S.ScalarTypeDefinition {description = None; name = "Int"; directives = []})
@@ -128,6 +131,7 @@ module Schema : sig
   }
 
   val s: S.schema_document -> T.document -> (S.schema_document * res)
+  exception Transformation_error of string
 
 end = struct
 
@@ -210,7 +214,7 @@ end = struct
              | Some r -> 
                let op, res = s_operation_type_definition c (r, res) in
                (op::opps, res)
-             | None -> raise (Transformation_error "Operation not found")
+             | None -> raise (Transformation_error ("Operation \"" ^ (S.operation_type_to_string (m_operation_type t)) ^ "\" not found on schema."))
           )
           p2
           ([], r)
@@ -314,7 +318,7 @@ end = struct
          | Some fd -> 
            let fd, r = s_field_definition c tn ft(fd, r) in
            fd::fds, r
-         | None -> raise (Transformation_error ("Field with name: " ^ ft.selector.name ^ " not found."))
+         | None -> raise (Transformation_error ("Field with name \"" ^ ft.selector.name ^ "\" not found on type \""^tn ^"\"."))
       )
       fts
       ([], r)
@@ -587,6 +591,7 @@ end
 
 module Correct : sig
   val c : S.schema_document -> S.schema_document
+  exception Correction_error of string
 end = 
 struct
 
@@ -750,7 +755,7 @@ struct
         );
       find_directive_arg = fun s1 s2 -> (
           try List.assoc (s1, s2) dirArgs
-          with Not_found -> raise (Correction_error ("Failed to find argument " ^ s2 ^ " for directive @" ^ s1))
+          with Not_found -> raise (Correction_error ("Failed to find argument \"" ^ s2 ^ "\" on directive \"@" ^ s1 ^ "\"."))
         )
     }
     in 
@@ -874,6 +879,7 @@ end
 
 module TypeCheck: sig
   val c: S.schema_document -> S.schema_document
+  exception TypeError of string
 end = struct
 
   type type_error = string
@@ -1426,21 +1432,27 @@ let schema (t: transformation) : S.schema_document =  t.ts
 let original_schema (t: transformation): S.schema_document = t.os
 
 let transform s t: transformation = (
-  let 
-    (schema, r) = Schema.s s t 
-  in
-  let ts =  schema >- Correct.c >- ShakeIt.c >- TypeCheck.c in
-  {
-    t = t;
-    os = s;
-    tr = r;
-    ts = ts 
-  }
+  try 
+    let 
+      (schema, r) = Schema.s s t 
+    in
+    let ts =  schema >- Correct.c >- ShakeIt.c >- TypeCheck.c in
+    {
+      t = t;
+      os = s;
+      tr = r;
+      ts = ts 
+    }
+  with
+  | Schema.Transformation_error e -> raise (Transform_error ("Transformation error: " ^ e))
+  | Correct.Correction_error e -> raise (Transform_error ("Correction error: " ^ e))
+  | TypeCheck.TypeError e -> raise (Transform_error ("Type error: " ^ e))
 )
 
 
 module Exec: sig
   val c: transformation -> S.executable_document -> S.executable_document
+  exception Transformation_error of string
 end = struct
   exception Transformation_error of string
 
@@ -1652,4 +1664,7 @@ end = struct
 
 end
 
-let executable = Exec.c
+let executable t a = 
+  try Exec.c t a with
+  | Exec.Transformation_error e -> raise (Query_transform_error e)
+

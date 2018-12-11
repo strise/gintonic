@@ -1,7 +1,7 @@
 {
     open Trans_parser
     open Lexing
-    exception LexError of (string * position)
+    exception LexError of string
 }
 
 let whitespace = [' ' '\t']
@@ -73,13 +73,13 @@ rule read =
     | '"'           { read_string "" lexbuf }
     | '#'           { read_comment "" lexbuf }
     | name          { NAME (Lexing.lexeme lexbuf) }
-    | _             { raise (LexError ("Illegal character: " ^ Lexing.lexeme lexbuf , Lexing.lexeme_start_p lexbuf)) }
+    | _             { raise (LexError ("Illegal character: " ^ Lexing.lexeme lexbuf)) }
     | eof           { EOF }
 and read_string s = 
     parse
     | '"'               { STRING s }
-    | lineterm          { raise (LexError ("Illegal newline in string: " ^ (String.escaped (Lexing.lexeme lexbuf)), Lexing.lexeme_start_p lexbuf)) }
-    | '\\'              { raise (LexError ("Illegal character escape", Lexing.lexeme_start_p lexbuf)) }
+    | lineterm          { raise (LexError ("Illegal newline in string: " ^ (String.escaped (Lexing.lexeme lexbuf)))) }
+    | '\\'              { raise (LexError ("Illegal character escape")) }
     | '\\' '/'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | '\\' '\\'         { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | '\\' 'b'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
@@ -90,13 +90,13 @@ and read_string s =
     | '\\' '"'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | escapedUnicdechar { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | _                 { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
-    | eof               { raise (LexError ("String not terminated", Lexing.lexeme_start_p lexbuf)) }
+    | eof               { raise (LexError ("String not terminated")) }
 and read_multiline_string s = 
     parse
     | "\"\"\""          { BLOCK_STRING s }
     | '\\' '"' '"' '"'  { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
     | _                 { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
-    | eof               { raise (LexError ("String not terminated", Lexing.lexeme_start_p lexbuf)) }
+    | eof               { raise (LexError ("String not terminated")) }
 and read_comment s =
     parse
     | lineterm          { read lexbuf }

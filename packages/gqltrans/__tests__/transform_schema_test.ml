@@ -3,6 +3,8 @@ open Expect
 
 exception Error
 
+external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
+
 let parseS = Gql_parser.document Gql_lexer.read
 let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
@@ -19,9 +21,18 @@ let testPrograms n (p1: string) (t: string) (p2: string): unit =
       |> toEqual (Js_utils.schema_document_to_js (parseSS p2))
   )
 
+let testProgramsShouldSuccede n p t: unit =
+    test n (
+        fun () -> let _ = (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p) (parseTS t)))) in  pass
+    )
+
 let () =
   describe "Transform" (fun () -> 
       describe "schema" (fun () -> 
+          testProgramsShouldSuccede
+            "large schema"
+            (readFileSync ~name:"./__tests__/resources/schema.graphql")
+            (readFileSync ~name:"./__tests__/resources/transformation.graphqlt");
           testPrograms
             "schema limit 1"
             "

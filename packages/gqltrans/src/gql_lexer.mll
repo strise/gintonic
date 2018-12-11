@@ -10,9 +10,9 @@ let name = ['_' 'a'-'z' 'A'-'Z'] ['_' 'a'-'z' 'A'-'Z' '0'-'9']*
 
 let lineterm = "\r\n" | ['\n' '\r']
 
-let unicodechar = ['a'-'f' 'A'-'F' '0'-'9']
+let unicodeChar = ['a'-'f' 'A'-'F' '0'-'9']
 
-let escapedUnicdechar = '\\' 'u' unicodechar unicodechar unicodechar unicodechar
+let escapedUnicodeChar = '\\' 'u' unicodeChar unicodeChar unicodeChar unicodeChar
 
 
 let negative_sign = '-'
@@ -117,14 +117,14 @@ and read_string s =
     | '\\' 'r'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | '\\' 't'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | '\\' '"'          { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
-    | escapedUnicdechar { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
-    | _                 { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
+    | escapedUnicodeChar { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
+    | [^ '\\' '"' '\n' '\r'] +   { read_string (s ^ (Lexing.lexeme lexbuf)) lexbuf }
     | eof               { raise (LexError "String not terminated") }
 and read_multiline_string s = 
     parse
     | "\"\"\""          { BLOCK_STRING s }
-    | '\\' '"' '"' '"'  { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
-    | _                 { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
+    | '\\' '"' '"' '"'          { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
+    | [^ '\\' '"' ] +   { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
     | eof               { raise (LexError "String not terminated") }
 and read_comment s =
     parse

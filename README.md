@@ -64,7 +64,7 @@ Notice that the result of the generated query is valid output for the previous q
 The language currently supports five transformation features, which can be applied to the different types and schema when
 appropriate:
 
-1. **Field and type aliasing**: Rename a filed or a type 
+1. **Field and type aliasing**: Rename a field or a type 
 2. **Field filtering**: Filter fields from objects or interfaces
 3. **Input locking**: Supply values to input, thus removing them from the target API
 4. **Documenting**: Supply or overwrite documentation on fields, arguments, etc.

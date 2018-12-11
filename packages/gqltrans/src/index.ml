@@ -26,16 +26,18 @@ let parse_with_error_t lexbuf =
     Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL transformer syntax error"))
 
 let transformSchema (s: string) (t: string): Transform.t =
-  let gql_ast =  parse_with_error_s (Lexing.from_string s) in
-  let schema_ast = Gql_ast.document_to_schema_document gql_ast in
-  let trans_ast = parse_with_error_t (Lexing.from_string t) in
-  let
-    transformation =
-    try  Transform.transform schema_ast trans_ast with
-    | Transform.Transform_error e -> Js.Exn.raiseError e
-    | Gql_ast.Invalid_document e -> Js.Exn.raiseError e
-  in
-  transformation
+  try
+    let gql_ast =  parse_with_error_s (Lexing.from_string s) in
+    let schema_ast = Gql_ast.document_to_schema_document gql_ast in
+    let trans_ast = parse_with_error_t (Lexing.from_string t) in
+    let
+      transformation =
+      Transform.transform schema_ast trans_ast
+    in
+    transformation
+  with
+  | Transform.Transform_error e -> Js.Exn.raiseError e
+  | Gql_ast.Invalid_document e -> Js.Exn.raiseError e
 
 let transformQuery (t: Transform.t) (e: Js.Json.t): Js.Json.t =
   try

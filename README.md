@@ -1,5 +1,7 @@
 # GraphQL transformer
 
+![](./resources/streamer.svg)
+
 This projects contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
 defining a new DSL, which is described and implemented at the 
 [gqltrans](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans) sub-project.

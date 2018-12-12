@@ -3,7 +3,11 @@
 ![](./resources/streamer.svg)
 
 <div align="center">
+    <br />
+    <br />
     <b>A declarative transformation language for GraphQL</b>
+    <br />
+    <br />
 </div>
 
 This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 

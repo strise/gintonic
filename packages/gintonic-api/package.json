@@ -1,6 +1,6 @@
 {
   "name": "@mitoai/gintonic-api",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "",
   "main": "src/index.js",
   "scripts": {

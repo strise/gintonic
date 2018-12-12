@@ -1,5 +1,3 @@
-def image = "eu.gcr.io/ntnu-smartmedia/gintonic"
-
 defaultPodTemplate {
   podTemplate(
       containers: [
@@ -18,34 +16,21 @@ defaultPodTemplate {
         stage("Checkout source") {
           scmVars = checkout scm
         }
-        
-        
-        if (env.TAG_NAME) {
-          stage("Build") {
-            def version = tagToVersion env.TAG_NAME
-            if (version) {
-              dockerBuildAndPush image: image, tag: version, buildArgs: [VERSION: version]
-            } else {
-              print "Not a version tag, skipping..."
-            }
+        stage("Setup") {
+          container("node") {
+            sh 'echo ". /root/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile'
           }
-        } else {
-          stage("Setup") {
-            container("node") {
-              sh 'echo ". /root/.opam/opam-init/init.sh > /dev/null 2> /dev/null || true" >> ~/.profile'
-            }
+        }
+        stage("Install") {
+          container("node") {
+            sh '. ~/.profile \
+            &&  npm i -g npm lerna@3.6.0 \
+            &&  npm run bootstrap \
+            &&  npm run build'
           }
-          stage("Install") {
-            container("node") {
-              sh '. ~/.profile \
-              &&  npm i -g npm lerna@3.6.0 \
-              &&  npm run bootstrap \
-              &&  npm run build'
-            }
-          }
-          stage("Test") {
-            npm 'test'
-          }
+        }
+        stage("Test") {
+          npm 'test'
         }
       }
     }

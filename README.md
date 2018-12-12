@@ -10,8 +10,8 @@
     <br />
 </div>
 
-This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
-defining a new DSL, which is described and implemented at the 
+This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by
+defining a new DSL, which is described and implemented at the
 [gintonic](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic) sub-project.
 
 [View demo here](https://mito.ai/gintonic/demo)
@@ -40,7 +40,7 @@ transform type Query {
 
 ```
 
-this transformation filters all fields on type `Query` that are not `field`, and aliases that field to `f`. 
+this transformation filters all fields on type `Query` that are not `field`, and aliases that field to `f`.
 This will generate the target schema
 
 ```graphql
@@ -72,7 +72,7 @@ Notice that the result of the generated query is valid output for the previous q
 The language currently supports five transformation features, which can be applied to the different types and schema when
 appropriate:
 
-1. **Field and type aliasing**: Rename a field or a type 
+1. **Field and type aliasing**: Rename a field or a type
 2. **Field filtering**: Filter fields from objects or interfaces
 3. **Input locking**: Supply values to input, thus removing them from the target API
 4. **Documenting**: Supply or overwrite documentation on fields, arguments, etc.
@@ -149,13 +149,13 @@ type T {
 }
 ```
 
-notice that a field can be transformed an arbitrary number of times. The only limitation is that the target schema 
+notice that a field can be transformed an arbitrary number of times. The only limitation is that the target schema
 must be valid.
 
 
 ### Interface type transformation
 
-The interface type transformation supports the same features as the object type transformation. 
+The interface type transformation supports the same features as the object type transformation.
 
 
 ```graphql
@@ -196,7 +196,7 @@ interface T {
 ```
 
 Notice that the validity of a transformation heavily relies upon the validity of the target schema.
-It is up to the implementer to ensure that all transformations are generating a valid target schema and that 
+It is up to the implementer to ensure that all transformations are generating a valid target schema and that
 all implementing types have the appropriate fields.
 
 ### Scalar and Union transformations
@@ -223,7 +223,7 @@ union U = T1 | T2 | T3
 
 "New docs"
 scalar S
-``` 
+```
 
 ### Enum transformation
 
@@ -253,7 +253,7 @@ enum E {
     V2
 }
 
-``` 
+```
 
 ### Input object transformation
 
@@ -288,12 +288,12 @@ input I {
 
 While we could consider doing field aliasing, notice that the input object is fundamentally different from objects.
 Furthermore, remember that the target schema should always be valid. Therefore locking all fields will yield
-an input object with no fields in the target schema. This is not valid. 
+an input object with no fields in the target schema. This is not valid.
 
 ## Query transformation
 
 The schema transformations would mean little without the ability to link actually retrieve data from the target API.
-Therefor graphql-transformer allows you to transform a query against the target API to a query against the source API, 
+Therefor graphql-transformer allows you to transform a query against the target API to a query against the source API,
 where the result can be returned directly to the original caller.
 
 E.g. with the following schemas and transformation:
@@ -333,7 +333,7 @@ query {
 
 preserving the output structure, thus making field resolution trivial.
 
-Notice that the target schema should always be served from a GraphQL API resolving meta-fields and validating 
+Notice that the target schema should always be served from a GraphQL API resolving meta-fields and validating
 incoming queries against the target schema.
 
 ## Koa middleware
@@ -341,9 +341,3 @@ incoming queries against the target schema.
 You may easily integrate using the provided koa middleware available as a submodule. Read more at
 [gintonic-koa](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic-koa).
 
-
-## Reference API implementation
-
-The sub-project contains an API reference implementation that uses *gqltrans* and deploys an API based
-on the transformed schema. Read more about the implementation in the 
-[gintonic-api](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic-api) sub-project.

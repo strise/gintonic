@@ -1,6 +1,6 @@
 # The GraphQL Transformer language
 
-This projects implements a tool for transforming GraphQL schemas with GraphQL transformer langauge.
+This project implements a tool for transforming GraphQL schemas with GraphQL transformer language.
 These are exposed from the package as the following methods:
 
 ```javascript
@@ -35,7 +35,7 @@ const sourceQueryAst = transformQuery(t, targetQueryAst)
 The language is specified below.
 
 
-## Transfomration language
+## Transformation language
 
 Specifying transformations is done with a transformation document. This document is validated against a schema, 
 the source schema, and can then be used to produce a target schema and source queries.
@@ -97,7 +97,7 @@ object_type_transformation : description? "transform" "type" type_selector field
 ```
 
 Object type transformations support documenting the object, aliasing the type and selecting/aliasing the fields.
-Notice that the object referenced in the type selector must exists and be of object type.
+Notice that the object referenced in the type selector must exist and be of type object.
 
 
 ### Interface type transformation
@@ -106,7 +106,7 @@ Notice that the object referenced in the type selector must exists and be of obj
 interface_type_transformation : description? "transform" "interface" type_selector fields_transformation?
 ```
 interface type transformations support documenting the object, aliasing the type and selecting/aliasing the fields.
-Notice that the object referenced in the type selector must exists and be of object type.
+Notice that the object referenced in the type selector must exist and be of type object.
 
 All transformations performed on interfaces are not automatically propagated to the types implementing the interfaces. 
 You need to make sure that the schema generated is a valid schema.
@@ -125,9 +125,8 @@ Union type transformation only supports type aliasing and documenting.
 enum_type_transformation : description? "transform" "enum" type_selector enum_values_transformation?
 ```
 
-When transforming an enum, only aliasing and documentation is availalbe. The number of enum values
-in the source and target schema must be the same, therefor all enum values not provided will be 
-transfered from the source schema as is. Enum aliasing is not supported.
+When transforming an enum, only aliasing and documentation is available. The number of enum values
+in the source and target schema must be the same, therefore all enum values not provided will be transferred from the source schema as is. Enum aliasing is not supported.
 
 #### Enum values transformation
 
@@ -150,8 +149,7 @@ input_fields_transformation : "{" input_value+ "}"
 ```
 
 Transforming input objects supports type-aliasing, documentation, and field aliasing. Just as with enum values; the
-input objects must be equal in the source and target schemas, to the degree of aliasing and description. Therefor 
-all fields not provided will automatically be included in the target schema.
+input objects must be equal in the source and target schemas, to the degree of aliasing and description. Therefore all fields not provided will automatically be included in the target schema.
 
 
 ### Type selector

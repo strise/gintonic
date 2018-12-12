@@ -341,3 +341,7 @@ incoming queries against the target schema.
 You may easily integrate using the provided koa middleware available as a submodule. Read more at
 [gintonic-koa](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic-koa).
 
+## Serverless
+
+Gintonic can be deployed on serverless infrastructure using the Koa middleware.
+An example can be found at [examples/serverless](./examples/serverless).

@@ -19,16 +19,14 @@ const Router = require('koa-router')
 const gt = require('@mitoai/gintonic-koa')
 const fetch = require('node-fetch')
 
-const sourceApiUrl = "..."
-
-const schemaString = "..."
-const transformationString = "..."
+const upstreamUrl = "https://example.com/graphql"
+const transformationString = "transform schema { query }"
 
 const app = new Koa()
 
 // Execute source query against source API
 async function fetcher ({query, variables, operationName, ctx}) {
-  const res = await fetch(sourceApiUrl, {
+  const res = await fetch(upstreamUrl, {
     method: "POST",
     body: JSON.stringify({query, variables, operationName}),
     headers: {
@@ -40,7 +38,7 @@ async function fetcher ({query, variables, operationName, ctx}) {
 
 const router = new Router()
 router.all('/graphql', gt({
-  schema: schemaString,
+  upstreamUrl,
   transformation: transformationString,
   fetcher
 }))

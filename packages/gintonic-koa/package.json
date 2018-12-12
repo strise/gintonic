@@ -16,7 +16,9 @@
   "license": "MIT",
   "dependencies": {
     "@mitoai/gintonic": "file:../gintonic",
-    "express-graphql": "^0.7.1"
+    "express-graphql": "^0.7.1",
+    "node-fetch": "^2.3.0",
+    "http-errors": "^1.7.1"
   },
   "peerDependencies": {
     "graphql": "^14.0.2"

@@ -1,0 +1,491 @@
+"""
+This usually represents a news article which has been analyzed and linked by Mito.
+"""
+type Article {
+  """The title of the news article."""
+  title: String!
+
+  """
+  The abstract is a sentence describing the content of the article. This is not
+  contextual to anything other thant the article itself.
+  """
+  abstract: String!
+
+  """
+  Time of publication of the article in combined date and time [ISO
+  8601](https://www.iso.org/iso-8601-date-and-time-format.html) format.
+  """
+  timestamp: String!
+
+  """
+  The publisher of the article. Usually this is the website of the publicist.
+  """
+  publisher: String!
+}
+
+"""
+
+An object representing a company. From here you may currently access the base information, such as title,
+and stories related to the company.
+
+"""
+type Company {
+  """
+
+  The internal Mito ID of the company. Save this for fetching this object without searching for a company.
+  This can be done with the [Query.companyById](#Query.companyById) field.
+
+  """
+  id: ID!
+
+  """The name of the company."""
+  name: String!
+
+  """
+
+  The official website of the company.
+
+  """
+  website: String
+
+  """
+
+  The official twitter username. The corresponding twitter page should be `https://twitter.com/{twitterUsername}`.
+
+  """
+  twitterUsername: String
+
+  """
+
+  The official facebook profile ID. The corresponding facebook page should be `https://facebook.com/{facebookProfileId}`.
+
+  """
+  facebookProfileId: String
+
+  """
+
+  Stories related to this company. Depending on your `selection` and `language`, this may
+  contain stories mentioning the company directly or something affiliated with the company. Read
+  more about the different selections under the [story selection enum](#StorySelection).
+
+  """
+  stories(
+    """Story selection."""
+    selection: StorySelection = RECENT
+
+    """Story language."""
+    language: StoryLanguage = ENGLISH
+
+    """Page size."""
+    first: Int = 10
+  ): StoryConnection!
+}
+
+"""
+
+A connection of companies facilitating pagination of companies. To read more about connections,
+see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type CompanyConnection {
+  """A list of edges containing the companies as nodes."""
+  edges: [CompanyConnectionEdge!]!
+
+  """Page information, which can be used for page traversal."""
+  pageInfo: PageInfo!
+}
+
+"""
+
+An edge in a company connection. To read more about connections,
+see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type CompanyConnectionEdge {
+  """Cursor used for page traversal."""
+  cursor: String!
+
+  """The node containing a compny."""
+  node: Company!
+}
+
+"""
+
+An object representing a cryptocurrency. From here you may currently access the base information, such as stories
+related to the cryptocurrency.
+
+"""
+type Cryptocurrency {
+  """
+
+  The internal Mito ID of the cryptocurrency. Save this for fetching this object without searching for a cryptocurrency.
+  This can be done with the [Query.cryptocurrencyById](#Query.cryptocurrencyById) field.
+
+  """
+  id: ID!
+
+  """The name of the cryptocurrency."""
+  name: String!
+
+  """
+
+  The official website of the cryptocurrency.
+
+  """
+  website: String
+
+  """
+
+  The subreddit of the cryptocurrency.
+
+  """
+  reddit: String
+
+  """
+
+  The official twitter username. The corresponding twitter page should be `https://twitter.com/{twitterUsername}`.
+
+  """
+  twitterUsername: String
+
+  """
+
+  Stories related to this cryptocurrency. Depending on your `selection` and `language`, this may
+  contain stories mentioning the cryptocurrency directly or something affiliated with the cryptocurrency. Read
+  more about the different selections under the [story selection enum](#StorySelection).
+
+  """
+  stories(
+    """Story selection."""
+    selection: StorySelection = RECENT
+
+    """Story language."""
+    language: StoryLanguage = ENGLISH
+
+    """Page size."""
+    first: Int = 10
+  ): StoryConnection!
+}
+
+"""
+
+A connection of cryptocurrencies facilitating pagination of cryptocurrencies. To read more about connections,
+see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type CryptocurrencyConnection {
+  """A list of edges containing the cryptocurrencies as nodes."""
+  edges: [CryptocurrencyConnectionEdge!]!
+
+  """Page information, which can be used for page traversal."""
+  pageInfo: PageInfo!
+}
+
+"""
+
+An edge in a cryptocurrency connection. To read more about connections,
+see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type CryptocurrencyConnectionEdge {
+  """Cursor used for page traversal."""
+  cursor: String!
+
+  """The node containing a compny."""
+  node: Cryptocurrency!
+}
+
+"""An enum containing the currently supported cryptocurrency indices."""
+enum CryptoIndex {
+  """
+
+  The Coinbase index fund containing four major cryptocurrencies.
+
+  Read more on [Coinbase](https://am.coinbase.com/documents/info.pdf)
+
+  """
+  COINBASE
+}
+
+"""An enum containing the currently supported market indices."""
+enum Index {
+  """
+
+  The DAX stock market index consisting of 30 major stocks traded on Frankfurt Stock Exchange.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/DAX)
+
+  """
+  DAX
+
+  """
+
+  The CAC 40 stock market index based on 40 of the highest market caps listed on Euronext Paris.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/CAC_40)
+
+  """
+  CAC
+
+  """
+
+  The OMX Copenhagen 20 stock market index based on the 20 most-traded stocks on Copenhagen Stock Exchange.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/OMX_Copenhagen_20)
+
+  """
+  OMXC
+
+  """
+
+  The OMX Stockholm 30 stock market index based on the market capitalizations of the 30 most-traded stocks
+  on Stockholm Stock Exchange.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/OMX_Stockholm_30)
+
+  """
+  OMXS
+
+  """
+
+  THE OBX stock market index based on the 25 most liquid companies listed on Oslo Stock Exchange.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/OBX_Index)
+
+  """
+  OBX
+
+  """
+
+  The Dow Jones Industrial Average (DJIA) stock market index based on the performance of 30 large
+  companies on NYSE and NASDAQ.
+
+  Read more on [wikipedia](https://en.wikipedia.org/wiki/Dow_Jones_Industrial_Average)
+
+  """
+  DJIA
+}
+
+"""Page info contains booleans which can be used for pagination."""
+type PageInfo {
+  """
+  This is `true` if backwards pagination is supported and there are more preceding pages.
+  """
+  hasPreviousPage: Boolean!
+
+  """Indicates if the last page has been reached."""
+  hasNextPage: Boolean!
+}
+
+"""
+This is the root query type and as such will be your main entry-point to the Mito API when fetching data.
+"""
+type Query {
+  """
+
+  Given an internal Mito ID, you may retrieve a company at this field. If no matching company is found
+  this field is `null`.  The ID's can be found by using the other fields, such
+  as [Query.findCompanies](#Query.findCompanies).
+
+  """
+  companyById(
+    """Company ID."""
+    id: ID!
+  ): Company
+
+  """
+
+  Search for companies given a query string as the `q` argument. The number of potential companies
+  returned is limited by the `first` argument, which is not required and defaulted to `10`.
+
+  """
+  findCompanies(
+    """Query string."""
+    q: String!
+
+    """Page size."""
+    first: Int = 10
+  ): CompanyConnection!
+
+  """
+
+  Find currently trending companies on a given market index. The indices are
+  added on demand. The number of potential companies
+  returned is limited by the `first` argument, which is not required and defaulted to `10`.
+
+  """
+  trendingCompaniesByIndex(
+    """Market index."""
+    index: Index!
+
+    """Page size."""
+    first: Int = 10
+  ): CompanyConnection!
+
+  """
+
+  Find currently trending companies in a give sector based in the [IPTC Media
+  Topics](https://iptc.org/standards/media-topics/).
+  New sectors are added lazily on demand.
+  The number of potential companies returned is limited by the `first` argument,
+  which is not required and defaulted to `10`.
+
+  """
+  trendingCompaniesBySector(
+    """Industry sector."""
+    sector: Sector!
+
+    """Page size."""
+    first: Int = 10
+  ): CompanyConnection!
+
+  """
+
+  Given an internal Mito ID, you may retrieve a cryptocurrency at this field. If no matching cryptocurrency is found
+  this field is `null`.  The ID's can be found by using the other fields, such
+  as [Query.findCryptocurrencies](#Query.findCryptocurrencies).
+
+  """
+  cryptocurrencyById(
+    """Cryptocurrency ID."""
+    id: ID!
+  ): Cryptocurrency
+
+  """
+
+  Search for cryptocurrencies given a query string as the `q` argument. The number of potential cryptocurrencies
+  returned is limited by the `first` argument, which is not required and defaulted to `10`.
+
+  """
+  findCryptocurrencies(
+    """Query string."""
+    q: String!
+
+    """Page size."""
+    first: Int = 10
+  ): CryptocurrencyConnection!
+
+  """
+
+  Find currently trending cryptocurrencies on a given market index. The indices are added on demand. The number of
+  potential companies returned is limited by the `first` argument, which is not required and defaulted to `10`.
+
+  """
+  trendingCryptocurrenciesByIndex(
+    """Crypto index."""
+    cryptoIndex: CryptoIndex!
+
+    """Page size."""
+    first: Int = 10
+  ): CryptocurrencyConnection!
+}
+
+"""
+An enum containing the currently supported sectors based on the [IPTC Media
+Topics](https://iptc.org/standards/media-topics/).
+"""
+enum Sector {
+  """This sector corresponds to the IPTC media topic: "pharmaceutical"."""
+  PHARMA
+}
+
+  """
+
+  A story is a collection of articles written about the same subject, i.e. a cluster of articles.
+  Working with stories rather than articles provides a better overview of the media landscape
+  by removing articles that, to some degree, are duplicates.
+
+  """
+  type Story {
+    """
+    The size is a number expressing how widely it has propagated the media. This
+    is an indicator on the number of articles written about this story.
+    """
+    size: Int!
+
+    """
+    A story consists of several articles. This is the "best" article representing the story.
+    """
+    primaryArticle: Article!
+  }
+
+  """
+
+  A connection of stories facilitating pagination of stories. To read more about connections,
+  see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type StoryConnection {
+  """
+  A list of edges containing the stories as nodes and contextual information.
+  """
+  edges: [StoryConnectionEdge!]!
+
+  """Page information, which can be used for page traversal."""
+  pageInfo: PageInfo!
+}
+
+"""
+
+An edge in an entity connection. To read more about connections,
+see the pagination documentation on [graphql.org/learn/pagination/](https://graphql.org/learn/pagination/).
+
+"""
+type StoryConnectionEdge {
+  """Story as a node."""
+  node: Story!
+
+  """The current cursor. Use this for pagination."""
+  cursor: String!
+
+  """
+
+  An indicator of whether the story is "relevant" for the given entity or not.
+  A story can mention an entity, or related entity, without being relevant.
+
+  """
+  relevant: Boolean!
+
+  """
+
+  This is similar to the [Article.abstract](#Article.abstract) field, in that it is
+  a sentence deemed relevant for the article. The only difference being that it is relevant
+  in context of the parent entity.
+
+  """
+  abstract: String!
+  }
+
+  """An enum used to filter stories by language."""
+  enum StoryLanguage {
+    """Spanish."""
+    SPANISH
+
+    """French."""
+    FRENCH
+
+    """German."""
+    GERMAN
+
+    """Danish."""
+    DANISH
+
+    """Swedish."""
+    SWEDISH
+
+    """Norwegian."""
+    NORWEGIAN
+
+    """English."""
+    ENGLISH
+  }
+
+  """An enum used to filter stories."""
+  enum StorySelection {
+    """Only stories deemed relevant to the company is fetched."""
+    RELEVANT
+
+    """No filter is applied."""
+    RECENT
+  }
+

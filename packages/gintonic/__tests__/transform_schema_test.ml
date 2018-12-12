@@ -5,7 +5,7 @@ exception Error
 
 external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
-let parseS = Gql_parser.document (fun buf -> Gql_lexer.read buf)
+let parseS = Gql_parser.document (fun buf -> Js.log(Lexing.lexeme buf); Gql_lexer.read buf)
 
 let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
@@ -34,6 +34,10 @@ let () =
             "large schema"
             (readFileSync ~name:"./__tests__/resources/schema.graphql")
             (readFileSync ~name:"./__tests__/resources/transformation.graphqlt");
+          testProgramsShouldSuccede
+            "public schema"
+            (readFileSync ~name:"./__tests__/resources/public.graphql")
+            "transform type Query { companyById } transform type Company { id name }";
           testPrograms
             "schema limit 1"
             "

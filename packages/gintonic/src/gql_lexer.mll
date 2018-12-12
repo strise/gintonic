@@ -123,7 +123,8 @@ and read_string s =
 and read_multiline_string s = 
     parse
     | "\"\"\""          { BLOCK_STRING s }
-    | '\\' '"' '"' '"'          { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
+    | '\\' '"' '"' '"'  { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
+    | '"'               { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
     | [^ '\\' '"' ] +   { read_multiline_string (s ^ Lexing.lexeme lexbuf) lexbuf }
     | eof               { raise (LexError "String not terminated") }
 and read_comment s =

@@ -23,5 +23,8 @@
   },
   "devDependencies": {
     "graphql": "^14.0.2"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }

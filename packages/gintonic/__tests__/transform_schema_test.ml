@@ -5,7 +5,8 @@ exception Error
 
 external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
-let parseS = Gql_parser.document Gql_lexer.read
+let parseS = Gql_parser.document (fun buf -> Gql_lexer.read buf)
+
 let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
 

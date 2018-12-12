@@ -1,5 +1,5 @@
 {
-  "name": "@mitoai/gqltrans-api",
+  "name": "@mitoai/gintonic-api",
   "version": "0.1.5",
   "description": "",
   "main": "src/index.js",
@@ -8,10 +8,10 @@
     "start": "node ./src",
     "dev": "nodemon --stack-size=10000000000000 ./src/index.js"
   },
-  "repository": "https://github.com/mitoai/graphql-transformer",
+  "repository": "https://github.com/mitoai/gintonic",
   "dependencies": {
     "@koa/cors": "^2.2.2",
-    "@mitoai/gqltrans-koa": "file:../gqltrans-koa",
+    "@mitoai/gintonic-koa": "file:../gintonic-koa",
     "config": "^3.0.0",
     "graphql": "^14.0.2",
     "http-errors": "^1.7.1",
@@ -26,7 +26,7 @@
     "nodemon": "^1.18.7"
   },
   "bin": {
-    "gqltrans": "bin/cli.sh"
+    "gintonic": "bin/cli.sh"
   },
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",

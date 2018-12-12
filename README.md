@@ -1,12 +1,13 @@
-# GraphQL transformer
+# Gintonic
 
 ![](./resources/streamer.svg)
+*A declarative transformation language for GraphQL*
 
 This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
 defining a new DSL, which is described and implemented at the 
-[gqltrans](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans) sub-project.
+[gintonic](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic) sub-project.
 
-[View demo here](https://mito.ai/gqlt/demo)
+[View demo here](https://mito.ai/gintonic/demo)
 
 Given a transformation, this implementation allows you to do two things:
 
@@ -331,11 +332,11 @@ incoming queries against the target schema.
 ## Koa middleware
 
 You may easily integrate using the provided koa middleware available as a submodule. Read more at
-[gqltrans-koa](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans-koa).
+[gintonic-koa](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic-koa).
 
 
 ## Reference API implementation
 
 The sub-project contains an API reference implementation that uses *gqltrans* and deploys an API based
 on the transformed schema. Read more about the implementation in the 
-[gqltrans-api](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans-api) sub-project.
+[gintonic-api](https://github.com/mitoai/graphql-transformer/tree/master/packages/gintonic-api) sub-project.

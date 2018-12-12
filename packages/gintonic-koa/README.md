@@ -5,7 +5,7 @@ Start using GraphQL Transformer with the koa middleware.
 ## Getting started
 Install the koa middleware
 ```bash
-npm i @mitoai/gqltrans-koa
+npm i @mitoai/gintonic-koa
 ```
 
 By providing
@@ -16,7 +16,7 @@ Api returing data from the source API.
 ```javascript
 const Koa = require('koa')
 const Router = require('koa-router')
-const gqlt = require('@mitoai/gqltrans-koa')
+const gt = require('@mitoai/gintonic-koa')
 const fetch = require('node-fetch')
 
 const sourceApiUrl = "..."
@@ -39,7 +39,7 @@ async function fetcher ({query, variables, operationName, ctx}) {
 }
 
 const router = new Router()
-router.all('/graphql', gqlt({
+router.all('/graphql', gt({
   schema: schemaString,
   transformation: transformationString,
   fetcher

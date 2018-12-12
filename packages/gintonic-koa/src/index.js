@@ -1,4 +1,4 @@
-const { transformQuery, transformSchema, buildSchema } = require('@mitoai/gqltrans')
+const { transformQuery, transformSchema, buildSchema } = require('../../gintonic')
 const { print, Source, execute, parse, validate } = require('graphql')
 const { getGraphQLParams } = require('express-graphql')
 

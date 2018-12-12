@@ -17,7 +17,7 @@ function transformQuery(t: Transform, ast: GraphQLAst): GraphQLAst { ... }
 
 These can be used as follows 
 ```javascript
-const {transformSchema, buildSchema, originalSchema, transformQuery} = require('@mitoai/gqltrans')
+const {transformSchema, buildSchema, originalSchema, transformQuery} = require('@mitoai/gintonic')
 
 const schema = "..."
 const transformation = "..."

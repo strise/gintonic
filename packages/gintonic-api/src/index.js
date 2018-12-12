@@ -2,7 +2,7 @@ const fs = require('fs').promises
 const Koa = require('koa')
 const Router = require('koa-router');
 const app = new Koa()
-const gqlt = require('@mitoai/gqltrans-koa')
+const gt = require('packages/gintonic-koa')
 const verify = require('./mw/verify')
 const cors = require('@koa/cors');
 const config = require('config')
@@ -58,7 +58,7 @@ async function setup() {
   const { schema, transformation } = await c()
   app.use(verify())
   const router = new Router();
-  router.all('/graphql', gqlt({
+  router.all('/graphql', gt({
     schema,
     transformation,
     fetcher: async ({ctx, query, variables, operationName}) => (

@@ -1,5 +1,5 @@
 {
-  "name": "@mitoai/gqltrans",
+  "name": "@mitoai/gintonic",
   "version": "0.1.5",
   "scripts": {
     "prepublishOnly": "npm run build && npm run bundle",
@@ -10,11 +10,11 @@
     "build-system:push": "docker push  ${IMAGE:-build-system:latest}",
     "build-system": "npm run build-system:build && npm run build-system:push",
     "test": "node --stack-size=10000 ./node_modules/.bin/jest",
-    "watch:test": "node --stack-size=10000 ./node_modules/.bin/jest  --watch ",
+    "watch:test": "node ./node_modules/.bin/jest  --watch ",
     "bundle": "rollup -c rollup.config.js",
     "watch:bundle": "rollup -w -c rollup.config.js"
   },
-  "repository": "https://github.com/mitoai/graphql-transformer",
+  "repository": "https://github.com/mitoai/gintonic",
   "main": "dist/bundle.js",
   "keywords": [
     "BuckleScript",

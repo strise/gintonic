@@ -1,7 +1,7 @@
 {
-  "name": "@mitoai/gqltrans-koa",
+  "name": "@mitoai/gintonic-koa",
   "version": "0.1.5",
-  "description": "Koa middleware for gqltrans",
+  "description": "Koa middleware for gintonic",
   "main": "src/index.js",
   "scripts": {
     "test": "echo \"lol\""
@@ -11,11 +11,11 @@
     "Koa",
     "Middleware"
   ],
-  "repository": "https://github.com/mitoai/graphql-transformer",
+  "repository": "https://github.com/mitoai/gintonic",
   "author": "Christian Budde Christensen <me@budde377.io>",
   "license": "MIT",
   "dependencies": {
-    "@mitoai/gqltrans": "file:../gqltrans",
+    "@mitoai/gintonic": "file:../gintonic",
     "express-graphql": "^0.7.1"
   },
   "peerDependencies": {

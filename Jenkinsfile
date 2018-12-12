@@ -1,4 +1,4 @@
-def image = "eu.gcr.io/ntnu-smartmedia/gqltrans"
+def image = "eu.gcr.io/ntnu-smartmedia/gintonic"
 
 defaultPodTemplate {
   podTemplate(
@@ -12,7 +12,7 @@ defaultPodTemplate {
         )
       ]
     ) {
-      lastTemplate('gqlt') {
+      lastTemplate('gintonic') {
         def scmVars
 
         stage("Checkout source") {

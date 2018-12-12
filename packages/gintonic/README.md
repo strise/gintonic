@@ -1,4 +1,4 @@
-# The GraphQL Transformer language
+# The Gintonic language
 
 This project implements a tool for transforming GraphQL schemas with GraphQL transformer language.
 These are exposed from the package as the following methods:

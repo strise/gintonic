@@ -1,7 +1,10 @@
 # Gintonic
 
 ![](./resources/streamer.svg)
-*A declarative transformation language for GraphQL*
+
+<div align="center">
+    <b>A declarative transformation language for GraphQL</b>
+</div>
 
 This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
 defining a new DSL, which is described and implemented at the 

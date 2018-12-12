@@ -2,7 +2,7 @@
 
 ![](./resources/streamer.svg)
 
-This projects contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
+This project contains our efforts to build a scalable and maintainable GraphQL transformation tool. This is done by 
 defining a new DSL, which is described and implemented at the 
 [gqltrans](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans) sub-project.
 
@@ -141,7 +141,7 @@ type T {
 }
 ```
 
-notice that a field can be transformed arbitrary number of times. The only limitation being that the target schema 
+notice that a field can be transformed an arbitrary number of times. The only limitation is that the target schema 
 must be valid.
 
 
@@ -187,7 +187,7 @@ interface T {
 }
 ```
 
-Notice that the validity of a transformation heavily relies in the validity of the target schema.
+Notice that the validity of a transformation heavily relies upon the validity of the target schema.
 It is up to the implementer to ensure that all transformations are generating a valid target schema and that 
 all implementing types have the appropriate fields.
 
@@ -279,13 +279,13 @@ input I {
 ```
 
 While we could consider doing field aliasing, notice that the input object is fundamentally different from objects.
-Furthermore, remember that the target schema should always be valid. Therefor locking all fields will yield
+Furthermore, remember that the target schema should always be valid. Therefore locking all fields will yield
 an input object with no fields in the target schema. This is not valid. 
 
 ## Query transformation
 
 The schema transformations would mean little without the ability to link actually retrieve data from the target API.
-Therefor graphql-transformer allows you to transform a query against the target api to a query against the source API, 
+Therefor graphql-transformer allows you to transform a query against the target API to a query against the source API, 
 where the result can be returned directly to the original caller.
 
 E.g. with the following schemas and transformation:
@@ -336,6 +336,6 @@ You may easily integrate using the provided koa middleware available as a submod
 
 ## Reference API implementation
 
-The sub-project contains an API reference implementation that uses *gqltrans* and deploys an api based
+The sub-project contains an API reference implementation that uses *gqltrans* and deploys an API based
 on the transformed schema. Read more about the implementation in the 
 [gqltrans-api](https://github.com/mitoai/graphql-transformer/tree/master/packages/gqltrans-api) sub-project.

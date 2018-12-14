@@ -599,7 +599,7 @@ module Decode = struct
 
   let opt_list (decode: 'a list Json.Decode.decoder): 'a list Json.Decode.decoder = fun json ->
     try decode json with
-    | Json.Decode.DecodeError m -> []
+    | Json.Decode.DecodeError _ -> []
 
   let rec d (json: Js.Json.t) : node = 
     Json.Decode.(

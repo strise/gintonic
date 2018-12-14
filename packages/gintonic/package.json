@@ -2,8 +2,8 @@
   "name": "@mitoai/gintonic",
   "version": "0.2.1",
   "scripts": {
-    "prepublishOnly": "npm run build && npm run bundle",
-    "clean": "bsb -clean-world",
+    "prepublishOnly": "npm run clean && npm run build && npm run bundle",
+    "clean": "bsb -clean-world && rm -rf dist",
     "build": "bsb -make-world",
     "watch:build": "bsb -make-world -w",
     "build-system:build": "docker build -t ${IMAGE:-build-system:latest} build_system",

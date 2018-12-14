@@ -1,6 +1,5 @@
 {
     open Trans_parser
-    open Lexing
     exception LexError of string
 }
 

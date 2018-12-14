@@ -13,7 +13,18 @@ const emw = k2e(mw({
   transformation
 }))
 
-exports.graphql = (req, res) => emw(req, res, function (err){
-  console.error(err)
-  res.status(err.status || 500).send(err.message)
-})
+exports.graphql = (req, res) => {
+  res.set('Access-Control-Allow-Origin', '*');
+  if (req.method === 'OPTIONS') {
+    // Send response to OPTIONS requests
+    res.set('Access-Control-Allow-Methods', 'GET');
+    res.set('Access-Control-Allow-Headers', 'Content-Type');
+    res.set('Access-Control-Max-Age', '3600');
+    res.status(204).send('');
+  } else {
+    emw(req, res, function (err) {
+      console.error(err)
+      res.status(err.status || 500).send(err.message)
+    })
+  }
+}

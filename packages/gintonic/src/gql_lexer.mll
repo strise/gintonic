@@ -1,6 +1,5 @@
 {
     open Gql_parser
-    open Lexing
     exception LexError of string
 }
 

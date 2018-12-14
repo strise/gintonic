@@ -12,7 +12,7 @@
     "serverless-google-cloudfunctions": "*"
   },
   "dependencies": {
-    "@mitoai/gintonic-koa": "^0.2.2",
+    "@mitoai/gintonic-koa": "^0.2.3",
     "graphql": "^14.0.2",
     "koa-to-express": "^3.1.4"
   }

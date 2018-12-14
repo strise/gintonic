@@ -59,7 +59,7 @@ async function exec ({transformation, schema, query, variables, operationName, f
       if (err) {
         throw new Error(err)
       }
-      return value[path.key]
+      return value && value[path.key]
     }
   )
 

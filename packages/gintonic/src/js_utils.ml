@@ -616,12 +616,13 @@ module Decode = struct
           directives = json |> opt_list (field "directives" (list directive));
           selectionSet = json |> field "selectionSet" selection_set
         }
-      | "VariableDefinition" -> VariableDefinition {
+      | "VariableDefinition" -> 
+        VariableDefinition {
           variable = json |> field "variable" variable;
           tpe = json |> field "type" tpe;
           defaultValue = json |> optional (field "defaultValue" vc)
-        }
-      | "Variable" -> Variable (json |> field "name" string)
+        } 
+      | "Variable" -> Variable (json |> field "name" name)
       | "SelectionSet" -> SelectionSet (json |> field "selections" (list selection))
       | "Field" ->
         Field {
@@ -959,7 +960,8 @@ module Decode = struct
 
   let executable_document (s: Js.Json.t) = 
     let d = document s in
-    Gql_ast.document_to_executable_document d
+    let ex = Gql_ast.document_to_executable_document d in
+    ex
 end
 
 exception Parse_error of string

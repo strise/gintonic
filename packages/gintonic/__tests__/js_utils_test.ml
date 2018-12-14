@@ -13,6 +13,18 @@ let () =
           test "transform json" (
             fun () -> expect (Js_utils.js_to_executable_document (Js_utils.executable_document_to_js (parse_executable_string introspectionQ)))
                       |> toEqual (parse_executable_string introspectionQ)
+          );
+          test "transform query 1" (
+            fun () -> expect (Js_utils.js_to_executable_document (Js_utils.executable_document_to_js (parse_executable_string "query ($v: String) { a(v: $v) }")))
+                      |> toEqual (parse_executable_string "query ($v: String) { a(v: $v) }")
+          );
+          test "transform query 2" (
+            fun () -> expect  (Js_utils.executable_document_to_js (Js_utils.js_to_executable_document (Js_utils.executable_document_to_js (parse_executable_string "query ($v: String) { a(v: $v) }"))))
+                      |> not_ |> toEqual (Js_utils.executable_document_to_js (parse_executable_string "query { a }"))
+          );
+          test "transform query 3" (
+            fun () -> expect  (Js_utils.executable_document_to_js (parse_executable_string "query ($v: String) { a(v: $v) }"))
+                      |> not_ |> toEqual (Js_utils.executable_document_to_js (parse_executable_string "query { a }"))
           )
         )
     )

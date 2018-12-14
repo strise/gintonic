@@ -29,6 +29,13 @@ let () =
                 "{ foo: bar }"
                 (od {tpe = Query; name = None; variables = []; directives = []; selectionSet = Field {alias = Some "foo"; name = "bar"; arguments = []; selectionSet = [];directives = [] }::[] });
               testProgram
+                "query ($q: String!) { foo: bar(q: $q) }"
+                (od {
+                    tpe = Query;
+                    name = None; 
+                    variables = ({variable = "q"; tpe =(NonNullType (NamedType "String")); defaultValue= None})::[]; directives = []; 
+                    selectionSet = Field {alias = Some "foo"; name = "bar"; arguments = ({name ="q"; value = Variable "q" })::[]; selectionSet = [];directives = [] }::[] });
+              testProgram
                 "{ ...on Lol { foo } }"
                 (od {
                     tpe = Query;

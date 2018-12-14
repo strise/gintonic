@@ -12,7 +12,7 @@ transform type Company {
   website 
   twitterUsername 
   facebookProfileId 
-  stories(selection = RECENT, language = English, first = 10)
+  stories(selection = RECENT, language = ENGLISH, first = 10)
 }
 transform type StoryConnection {
   edges

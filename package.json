@@ -3,6 +3,7 @@
 		"lerna": "^3.6.0"
 	},
 	"scripts": {
+		"preversion": "npm run test",
 		"test": "lerna run test",
 		"build": "lerna run build",
 		"bootstrap": "lerna bootstrap --hoist"

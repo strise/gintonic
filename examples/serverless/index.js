@@ -1,7 +1,7 @@
 'use strict';
 
 const k2e = require('koa-to-express')
-const mw = require('./mw')
+const mw = require('@mitoai/gintonic-koa')
 const upstreamUrl = "https://graphql.mito.ai/graphql"
 
 const transformation = `

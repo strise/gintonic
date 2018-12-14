@@ -108,6 +108,7 @@ variable_definitions:
 
 variable_definition:
   v = variable
+  COLON
   t = tpe
   df = default_value?
   {{

@@ -45,6 +45,7 @@ rule read =
     | '@'           { AT }
     | '='           { EQUAL }
     | '&'           { AMPERSAND }
+    | '$'           { DOLLAR }
     | '!'           { EXCLAMATION }
 
     | "..."         { SPREAD }

@@ -5,8 +5,24 @@ const mw = require('@mitoai/gintonic-koa')
 const upstreamUrl = "https://graphql.mito.ai/graphql"
 
 const transformation = `
-transform type Query { companyById }
-transform type Company { id name }
+transform type Query { findCompanies }
+transform type Company { 
+  id 
+  name 
+  website 
+  twitterUsername 
+  facebookProfileId 
+  stories(selection = RECENT, language = English, first = 10)
+}
+transform type StoryConnection {
+  edges
+}
+transform type StoryConnectionEdgeObject {
+  node abstract relevant
+}
+transform type Story {
+  size
+}
 `
 const emw = k2e(mw({
   upstreamUrl,

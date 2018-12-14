@@ -5,7 +5,7 @@ exception Error
 
 external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
-let parseS = Gql_parser.document (fun buf -> Js.log(Lexing.lexeme buf); Gql_lexer.read buf)
+let parseS = Gql_parser.document (fun buf -> Gql_lexer.read buf)
 
 let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
@@ -23,9 +23,9 @@ let testPrograms n (p1: string) (t: string) (p2: string): unit =
   )
 
 let testProgramsShouldSuccede n p t: unit =
-    test n (
-        fun () -> let _ = (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p) (parseTS t)))) in  pass
-    )
+  test n (
+    fun () -> let _ = (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p) (parseTS t)))) in  pass
+  )
 
 let () =
   describe "Transform" (fun () -> 

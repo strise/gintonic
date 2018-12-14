@@ -10,7 +10,7 @@
     "build-system:push": "docker push  ${IMAGE:-build-system:latest}",
     "build-system": "npm run build-system:build && npm run build-system:push",
     "test": "node --stack-size=10000 $(which jest)",
-    "watch:test": "node --stack-size=10000  $(which jest)  --watch ",
+    "watch:test": "node --stack-size=10000 $(which jest) --watch ",
     "bundle": "rollup -c rollup.config.js",
     "watch:bundle": "rollup -w -c rollup.config.js"
   },

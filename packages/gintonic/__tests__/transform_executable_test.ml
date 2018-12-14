@@ -3,7 +3,27 @@ open Expect
 
 external introspectionQ: string = "introspectionQuery" [@@bs.module "graphql"]
 
-let parse_schema = Gql_parser.document Gql_lexer.read
+
+let print_position (lexbuf: Lexing.lexbuf) =
+  let start_p = Lexing.lexeme_start_p lexbuf in
+  let end_p = Lexing.lexeme_end_p lexbuf in
+  Printf.sprintf "line %d: char %d..%d: %s"
+    start_p.pos_lnum
+    (start_p.pos_cnum - start_p.pos_bol + 1)
+    (end_p.pos_cnum - end_p.pos_bol + 1)
+
+let print_token (lexbuf: Lexing.lexbuf) (msg)=
+  let tok = Lexing.lexeme lexbuf in
+  Printf.sprintf "%s: Unexpected token %s" msg tok
+
+let parse_with_error_s lexbuf =
+  try Gql_parser.document Gql_lexer.read lexbuf with
+  | Gql_lexer.LexError message ->
+    Js.Exn.raiseError (print_position lexbuf  ("GraphQL syntax error: " ^ message))
+  | Gql_parser.Error ->
+    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL syntax error"))
+
+let parse_schema = parse_with_error_s
 
 let parse_executable_string(s: string) = Gql_ast.document_to_executable_document (parse_schema (Lexing.from_string s))
 
@@ -211,6 +231,26 @@ let () =
             "
             query {
               field(a1: {f1: \"bar\" f2: \"foobar\"})
+            }
+            ";
+          testPrograms
+            "transform arguments"
+            "
+            type Query {
+              field(a1: String!): String
+            }
+            "
+            "
+            transform type Query
+            "
+            "
+            query($a : String!) {
+              field(a1 : $a)
+            }
+            "
+            "
+            query($a : String!) {
+              field(a1 : $a)
             }
             ";
           testPrograms

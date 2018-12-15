@@ -71,17 +71,8 @@ async function exec ({transformation, schema, query, variables, operationName, f
 
 }
 
-async function fetchSchema (url) {
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json'
-    },
-    body: JSON.stringify({
-      query: introspectionQuery
-    })
-  })
-  const {data, errors} = await res.json()
+async function fetchSchema (fetcher) {
+  const {data, errors} = await fetcher({query: introspectionQuery})
   if (errors) {
     throw new Error(`Failed to fetch schema: ${errors.map(({message}) => message).join(', ')}`)
   }
@@ -107,8 +98,8 @@ function defaultFetcher (url) {
 }
 
 module.exports = function ({schema: ss, transformation: ts, fetcher: f, upstreamUrl: u}) {
-  if (!ss && !u) {
-    throw new Error('Failed to find schema, either provide schema as a string or an url for the upstream server.')
+  if (!ss && !u && !f) {
+    throw new Error('Failed to find schema, either provide schema as a string, an url for the upstream server, or a custom fetcher.')
   }
   if (!ts) {
     throw new Error('Not transformation provided. I don\'t know what to do!')
@@ -116,9 +107,9 @@ module.exports = function ({schema: ss, transformation: ts, fetcher: f, upstream
   if (!f && !u) {
     throw new Error('No fetcher or upstream url provided. I don\'t know how to fetch upstream data')
   }
-  const schemaP = ss ? Promise.resolve(ss) : fetchSchema(u)
-  const transformationP = schemaP.then(schema => transformSchema(schema, ts))
   const fetcher = f || defaultFetcher(u)
+  const schemaP = ss ? Promise.resolve(ss) : fetchSchema(fetcher, u)
+  const transformationP = schemaP.then(schema => transformSchema(schema, ts))
   const targetSchemaP = transformationP.then(t => buildSchema(t))
   return async ctx => {
     const transformation = await transformationP

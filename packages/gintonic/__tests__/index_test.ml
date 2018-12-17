@@ -63,6 +63,115 @@ let () =
             type Query implements I { field: String } "
             "
             transform type Query
+            ";
+          testErrorMessage 
+            "Transform enum value error, non-null"
+            "Transformation error: Expected locked value of type non-null, got null."
+            "
+            type Query { field(arg: String! ): String } "
+            "
+            transform type Query { field (arg = null ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list string"
+            "Transformation error: Expected locked value of type list, got string."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = \"foobar\" ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list int"
+            "Transformation error: Expected locked value of type list, got int."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = 123 ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list float"
+            "Transformation error: Expected locked value of type list, got float."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = 123.1 ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list bool"
+            "Transformation error: Expected locked value of type list, got boolean."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = true ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list enum"
+            "Transformation error: Expected locked value of type list, got enum-value."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = EV ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, string enum"
+            "Transformation error: Expected locked value of type string, got enum-value."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = [EV] ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error, list object"
+            "Transformation error: Expected locked value of type list, got object."
+            "
+            type Query { field(arg: [String]! ): String } "
+            "
+            transform type Query { field (arg = {foo: true} ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error"
+            "Transformation error: The enum value Ev1 is not found in the type E."
+            "
+            enum E { EV1 EV2 }
+            type Query { field(arg: E ): String } "
+            "
+            transform type Query { field (arg = Ev1 ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error"
+            "Transformation error: Expected locked value of type object, got enum-value."
+            "
+            input I { f1: String!, f2: String }
+            type Query { field(arg: I ): String } "
+            "
+            transform type Query { field (arg = Ev1 ) }
+            ";
+          testErrorMessage 
+            "Transform enum value error"
+            "Transformation error: Failed to find field f3 on I."
+            "
+            input I { f1: String, f2: String }
+            type Query { field(arg:I): String } "
+            "
+            transform type Query { field (arg = { f3 : true }) }
+            ";
+          testErrorMessage 
+            "Transform enum value error"
+            "Transformation error: Expected locked value of type string, got boolean."
+            "
+            input I { f1: String, f2: String }
+            type Query { field(arg:I): String } "
+            "
+            transform type Query { field (arg = { f2 : true }) }
+            ";
+          testErrorMessage 
+            "Transform enum value error"
+            "Transformation error: Required field f1 missing from object."
+            "
+            input I { f1: String!, f2: Boolean }
+            type Query { field(arg:I): String } "
+            "
+            transform type Query { field (arg = { f2 : true }) }
             "
 
 

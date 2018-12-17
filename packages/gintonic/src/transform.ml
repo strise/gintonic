@@ -159,6 +159,7 @@ end = struct
     find_enum_type_transformation: S.name -> T.enum_type_transformation option;
     find_union_type_transformation: S.name -> T.union_type_transformation option;
     find_input_object_type_transformation: S.name -> T.input_object_type_transformation option;
+    find_type: S.name -> S.type_definition
   }
 
   let listify (f: 'a * res -> 'a * res): 'a -> 'a list * res ->  'a list * res =
@@ -224,6 +225,59 @@ end = struct
         operations = ops
       }, r
 
+  let check_message (e: string) (g: string): exn = (Transformation_error ("Expected locked value of type " ^ e ^ ", got " ^ g ^"."))
+
+  let v_to_name (v: T.value): string = match v with
+    | T.ListValue _ -> "list"
+    | T.BooleanValue _ -> "boolean"
+    | T.NullValue -> "null"
+    | T.IntValue _ -> "int"
+    | T.FloatValue _ -> "float"
+    | T.StringValue _ -> "string"
+    | T.EnumValue _ -> "enum-value"
+    | T.ObjectValue _ -> "object"
+
+  let rec check_value (c: ctx) (t: S.tpe) (v: T.value): unit = 
+    match t, v with
+    | S.NonNullType _, T.NullValue -> raise (check_message "non-null" "null")
+    | S.NonNullType (S.ListType t), v -> check_value c (S.ListType t) v
+    | S.NonNullType (S.NamedType n), v -> check_value c (S.NamedType n) v
+    | _, T.NullValue -> ()
+    | S.ListType t, T.ListValue vs -> List.fold_left (fun _ v -> check_value c t v) () vs
+    | S.ListType _, _ -> raise (check_message "list" (v_to_name v))
+    | S.NamedType "String", T.StringValue _ -> ()
+    | S.NamedType "String", _ -> raise (check_message "string" (v_to_name v))
+    | S.NamedType "Int", T.IntValue _ -> ()
+    | S.NamedType "Int", _ -> raise (check_message "int" (v_to_name v))
+    | S.NamedType "Float", T.FloatValue _ -> ()
+    | S.NamedType "Float", _ -> raise (check_message "float" (v_to_name v))
+    | S.NamedType "Boolean", T.BooleanValue _ -> ()
+    | S.NamedType "Boolean", _ -> raise (check_message "boolean" (v_to_name v))
+    | S.NamedType "ID", T.IntValue _ -> ()
+    | S.NamedType "ID", T.StringValue _ -> ()
+    | S.NamedType "ID", _ -> raise (check_message "id" (v_to_name v))
+    | S.NamedType n, v -> (
+        let t = c.find_type n in
+        match t, v with 
+        | S.EnumTypeDefinition d, T.EnumValue v -> (
+            match Utils.find_opt (fun (d: S.enum_value_definition) -> v = d.value) d.values with | Some _ -> () |  _ -> raise (Transformation_error ("The enum value " ^ v ^ " is not found in the type " ^ n ^ "."))
+          )
+        | S.EnumTypeDefinition _, v -> raise (check_message "enum-value" (v_to_name v))
+        | S.InputObjectTypeDefinition d, T.ObjectValue vs -> (
+            List.fold_left (fun _ (v: T.object_field) -> (
+                  match Utils.find_opt (fun (d: S.input_value_definition) -> d.name = v.name) d.fields with
+                  | Some f -> check_value c f.tpe v.value
+                  | _ -> raise (Transformation_error ("Failed to find field " ^ v.name ^ " on " ^ n ^ "."))
+                )) () vs;
+            List.fold_left (fun _ (f: S.input_value_definition) -> 
+                match f.tpe, Utils.find_opt (fun (v: T.object_field) -> v.name = f.name) vs with 
+                | S.NonNullType _, None -> raise (Transformation_error ("Required field " ^ f.name ^ " missing from object."))
+                | _ -> ()
+              ) () d.fields
+          )
+        | S.InputObjectTypeDefinition _, _ -> raise (check_message "object" (v_to_name v))
+        | _ -> ()
+      )
 
   let s_input_value_definition (c: ctx) (t: T.input_value) ((d, r): S.input_value_definition * res): S.input_value_definition * res = 
     let 
@@ -241,7 +295,11 @@ end = struct
     List.fold_right 
       (fun (d: S.input_value_definition) (ds, r) -> 
          match Utils.assoc_opt d.name args with
-         | Some {value = Some v; name} -> (ds, upd1 {name = name; value = tv_to_svc v} r)
+         | Some {value = Some v; name} -> 
+           check_value c d.tpe v;
+           (
+             ds, upd1 {name = name; value = tv_to_svc v} r
+           )
          | Some t -> (
              let d, r = s_input_value_definition c t (d, r) in
              (d::ds, upd2 d r )
@@ -510,9 +568,12 @@ end = struct
         t.transformations
         (None, [])
     in
+    let original_types = List.map (fun d -> td_to_name d, d) s.types in
     let err = Transformation_error "Transformation type mismatch" in
     let ctx = 
       {
+        find_type = 
+          (fun n -> match Utils.assoc_opt n original_types with | Some t -> t | None -> raise (Transformation_error ("Type " ^ n ^ " not found.")));
         find_interface_type_transformation = 
           (find_generator 
              (fun v -> match v with

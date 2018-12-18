@@ -61,6 +61,7 @@ rule read =
     | "false"       { FALSE }
     | "null"        { NULL }
 
+    | "transform"                       { TRANSFORM }
     | "on"                              { ON }
     | "fragment"                        { FRAGMENT }
     | "schema"                          { SCHEMA }
@@ -75,6 +76,7 @@ rule read =
     | "query"                           { OP_QUERY }
     | "mutation"                        { OP_MUTATION }
     | "subscription"                    { OP_SUBSCRIPTION }
+
     | "QUERY"                           { EDIR_QUERY }
     | "MUTATION"                        { EDIR_MUTATION }
     | "SUBSCRIPTION"                    { EDIR_SUBSCRIPTION }

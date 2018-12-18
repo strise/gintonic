@@ -3,14 +3,13 @@ open Expect
 
 exception Error
 
-external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
-let parseS = Gql_parser.document (fun buf -> Gql_lexer.read buf)
+let parseS b = try Gql_parser.document (fun buf -> Gql_lexer.read buf) b  with | Gql_parser.Expected m -> Js.Exn.raiseError (m ^ " <> " ^ (Lexing.lexeme b))
 
 let parseSS(s: string) = Gql_ast.document_to_schema_document (parseS (Lexing.from_string s))
 
 
-let parseT = Trans_parser.document Trans_lexer.read
+let parseT = Gql_parser.trans_document (fun buf -> Gql_lexer.read buf)
 let parseTS(s: string) = parseT (Lexing.from_string s)
 
 
@@ -26,6 +25,8 @@ let testProgramsShouldSuccede n p t: unit =
   test n (
     fun () -> let _ = (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p) (parseTS t)))) in  pass
   )
+
+external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
 let () =
   describe "Transform" (fun () -> 

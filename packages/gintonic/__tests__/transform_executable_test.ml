@@ -17,7 +17,7 @@ let print_token (lexbuf: Lexing.lexbuf) (msg)=
   Printf.sprintf "%s: Unexpected token %s" msg tok
 
 let parse_with_error_s lexbuf =
-  try Gql_parser.document Gql_lexer.read lexbuf with
+  try Gql_parser.document (fun b -> Gql_lexer.read b) lexbuf with
   | Gql_lexer.LexError message ->
     Js.Exn.raiseError (print_position lexbuf  ("GraphQL syntax error: " ^ message))
   | Gql_parser.Error ->
@@ -30,7 +30,7 @@ let parse_executable_string(s: string) = Gql_ast.document_to_executable_document
 let parse_schema_string(s: string) =  Gql_ast.document_to_schema_document (parse_schema (Lexing.from_string s))
 
 
-let parse_trans = Trans_parser.document Trans_lexer.read
+let parse_trans = Gql_parser.trans_document Gql_lexer.read
 let parse_trans_string(s: string) = parse_trans (Lexing.from_string s)
 
 

@@ -1,6 +1,6 @@
 {
   "name": "@mitoai/gintonic",
-  "version": "0.2.6",
+  "version": "0.2.7",
   "scripts": {
     "prepublishOnly": "npm run clean && npm run build && npm run bundle",
     "clean": "bsb -clean-world && rm -rf dist",

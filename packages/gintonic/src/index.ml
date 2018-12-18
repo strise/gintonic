@@ -11,14 +11,16 @@ let print_token (lexbuf: Lexing.lexbuf) (msg)=
   let tok = Lexing.lexeme lexbuf in
   Printf.sprintf "%s: Unexpected token %s" msg tok
 
+exception E of string
+
 let parse_with_error_s n parser lexbuf =
   try parser Gql_lexer.read lexbuf with
   | Gql_lexer.LexError message ->
-    Js.Exn.raiseError (print_position lexbuf  ("GraphQL " ^ n ^ "syntax error: " ^ message))
+    raise (E (print_position lexbuf  ("GraphQL " ^ n ^ "syntax error: " ^ message)))
   | Gql_parser.Error ->
-    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf ("GraphQL " ^ n ^ "syntax error")))
+    raise (E (print_position lexbuf (print_token lexbuf ("GraphQL " ^ n ^ "syntax error"))))
   | Gql_parser.Expected m ->
-    Js.Exn.raiseError (print_position lexbuf ((print_token lexbuf ("GraphQL " ^ n ^ "syntax error")) ^ " expected " ^ m))
+    raise (E (print_position lexbuf ((print_token lexbuf ("GraphQL " ^ n ^ "syntax error")) ^ " expected " ^ m)))
 
 let transformSchema (s: string) (t: string): Transform.t =
   try
@@ -31,6 +33,7 @@ let transformSchema (s: string) (t: string): Transform.t =
     in
     transformation
   with
+  | E m -> Js.Exn.raiseError m
   | Transform.Transform_error e -> Js.Exn.raiseError e
   | Gql_ast.Invalid_document e -> Js.Exn.raiseError e
 
@@ -41,6 +44,7 @@ let transformQuery (t: Transform.t) (e: Js.Json.t): Js.Json.t =
 
     Js_utils.executable_document_to_js ndoc
   with
+  | E m -> Js.Exn.raiseError m
   | Js_utils.Parse_error m -> Js.Exn.raiseError m
   | Transform.Query_transform_error m -> Js.Exn.raiseError m
   | Gql_ast.Invalid_document e -> Js.Exn.raiseError e

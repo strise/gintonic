@@ -1,36 +1,36 @@
 open Jest
 open Expect
-open Trans_parser
-open Trans_lexer
+open Gql_parser
+open Gql_lexer
 
-let parse = document read
+let parse = trans_document read
 
 let parseString(s: string) = parse (Lexing.from_string s)
 
 let testName(program: string): string = "program: \"" ^ (String.escaped program) ^ "\""
 
-let testProgram(program: string)(result: Trans_ast.document) =
+let testProgram(program: string)(result: Gql_ast.trans_document) =
   test (testName program) (
     fun () -> expect (parseString program) |> toEqual result
   )
 
-let mapper(t: Trans_ast.object_type_transformation): Trans_ast.transformation = TypeTransformation (ObjectTypeTransformation t)
+let mapper(t: Gql_ast.object_type_transformation): Gql_ast.transformation = TypeTransformation (ObjectTypeTransformation t)
 
-let tts (ts): Trans_ast.document = {transformations = List.map mapper ts}
+let tts (ts): Gql_ast.trans_document = {transformations = List.map mapper ts}
 
-let tt (t): Trans_ast.document = tts (t::[])
+let tt (t): Gql_ast.trans_document = tts (t::[])
 
-let ts (t: Trans_ast.schema_transformation): Trans_ast.document = {transformations = (SchemaTransformation t)::[]}
+let ts (t: Gql_ast.schema_transformation): Gql_ast.trans_document = {transformations = (SchemaTransformation t)::[]}
 
-let stt (t: Trans_ast.scalar_type_transformation): Trans_ast.document = {transformations = TypeTransformation (ScalarTypeTransformation t)::[]}
+let stt (t: Gql_ast.scalar_type_transformation): Gql_ast.trans_document = {transformations = TypeTransformation (ScalarTypeTransformation t)::[]}
 
-let utt (t: Trans_ast.union_type_transformation): Trans_ast.document = {transformations = TypeTransformation (UnionTypeTransformation t)::[]}
+let utt (t: Gql_ast.union_type_transformation): Gql_ast.trans_document = {transformations = TypeTransformation (UnionTypeTransformation t)::[]}
 
-let itt (t: Trans_ast.interface_type_transformation): Trans_ast.document = {transformations = TypeTransformation (InterfaceTypeTransformation t)::[]}
+let itt (t: Gql_ast.interface_type_transformation): Gql_ast.trans_document = {transformations = TypeTransformation (InterfaceTypeTransformation t)::[]}
 
-let iott (t: Trans_ast.input_object_type_transformation): Trans_ast.document = {transformations = TypeTransformation (InputObjectTypeTransformation t)::[]}
+let iott (t: Gql_ast.input_object_type_transformation): Gql_ast.trans_document = {transformations = TypeTransformation (InputObjectTypeTransformation t)::[]}
 
-let ett (t: Trans_ast.enum_type_transformation): Trans_ast.document = {transformations = TypeTransformation (EnumTypeTransformation t)::[]}
+let ett (t: Gql_ast.enum_type_transformation): Gql_ast.trans_document = {transformations = TypeTransformation (EnumTypeTransformation t)::[]}
 
 let () = 
   describe "Trans_parser" (fun () -> 

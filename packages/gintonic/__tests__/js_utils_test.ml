@@ -3,7 +3,9 @@ open Expect
 
 external introspectionQ: string = "introspectionQuery" [@@bs.module "graphql"]
 
-let parse_schema = Gql_parser.document Gql_lexer.read
+let parse_schema b =
+  try Gql_parser.document (fun b -> Gql_lexer.read b) b
+  with | Gql_parser.Expected m -> Js.Exn.raiseError (m ^ " <> " ^ (Lexing.lexeme b))
 
 let parse_executable_string(s: string) = Gql_ast.document_to_executable_document (parse_schema (Lexing.from_string s))
 

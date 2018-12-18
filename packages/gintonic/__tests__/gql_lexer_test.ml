@@ -1,7 +1,7 @@
 open Jest
 open Expect
-open Trans_lexer
-open Trans_parser
+open Gql_lexer
+open Gql_parser
 
 let rec lex (buffer: Lexing.lexbuf): token list = 
   let t = read buffer in

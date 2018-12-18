@@ -21,17 +21,17 @@ let () =
             "";
           testErrorMessage 
             "Lex error"
-            "line 1: char 1..2: GraphQL transformer syntax error: Illegal character: ~" 
+            "line 1: char 1..2: GraphQL transformation syntax error: Illegal character: ~" 
             "type Query { field: String } "
             "~";
           testErrorMessage 
             "Parse error"
-            "line 1: char 6..7: GraphQL syntax error: Unexpected token {" 
+            "line 1: char 6..7: GraphQL syntax error: Unexpected token { expected name" 
             "type { field: String } "
             "";
           testErrorMessage 
             "Parse error"
-            "line 1: char 11..12: GraphQL transformer syntax error: Unexpected token X"
+            "line 1: char 11..12: GraphQL transformation syntax error: Unexpected token X"
             "type Query { field: String } "
             "transform X";
           testErrorMessage 

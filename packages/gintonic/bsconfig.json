@@ -11,32 +11,6 @@
       "subdirs": true,
       "generators": [
         {
-          "name": "menhir",
-          "edge": [
-            "trans_parser.ml",
-            "trans_parser.mli",
-            ":",
-            "trans_parser.mly"
-          ]
-        },
-        {
-          "name": "ocamllex",
-          "edge": [
-            "trans_lexer.ml",
-            ":",
-            "trans_lexer.mll"
-          ]
-        },
-        {
-          "name": "menhir",
-          "edge": [
-            "gql_parser.ml",
-            "gql_parser.mli",
-            ":",
-            "gql_parser.mly"
-          ]
-        },
-        {
           "name": "ocamllex",
           "edge": [
             "gql_lexer.ml",

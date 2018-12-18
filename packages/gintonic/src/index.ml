@@ -11,25 +11,20 @@ let print_token (lexbuf: Lexing.lexbuf) (msg)=
   let tok = Lexing.lexeme lexbuf in
   Printf.sprintf "%s: Unexpected token %s" msg tok
 
-let parse_with_error_s lexbuf =
-  try Gql_parser.document Gql_lexer.read lexbuf with
+let parse_with_error_s n parser lexbuf =
+  try parser Gql_lexer.read lexbuf with
   | Gql_lexer.LexError message ->
-    Js.Exn.raiseError (print_position lexbuf  ("GraphQL syntax error: " ^ message))
+    Js.Exn.raiseError (print_position lexbuf  ("GraphQL " ^ n ^ "syntax error: " ^ message))
   | Gql_parser.Error ->
-    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL syntax error"))
-
-let parse_with_error_t lexbuf =
-  try Trans_parser.document Trans_lexer.read lexbuf with
-  | Trans_lexer.LexError message ->
-    Js.Exn.raiseError (print_position lexbuf  ("GraphQL transformer syntax error: " ^ message))
-  | Trans_parser.Error ->
-    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf "GraphQL transformer syntax error"))
+    Js.Exn.raiseError (print_position lexbuf (print_token lexbuf ("GraphQL " ^ n ^ "syntax error")))
+  | Gql_parser.Expected m ->
+    Js.Exn.raiseError (print_position lexbuf ((print_token lexbuf ("GraphQL " ^ n ^ "syntax error")) ^ " expected " ^ m))
 
 let transformSchema (s: string) (t: string): Transform.t =
   try
-    let gql_ast =  parse_with_error_s (Lexing.from_string s) in
+    let gql_ast =  parse_with_error_s "" Gql_parser.document (Lexing.from_string s) in
     let schema_ast = Gql_ast.document_to_schema_document gql_ast in
-    let trans_ast = parse_with_error_t (Lexing.from_string t) in
+    let trans_ast = parse_with_error_s "transformation " Gql_parser.trans_document (Lexing.from_string t) in
     let
       transformation =
       Transform.transform schema_ast trans_ast

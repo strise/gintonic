@@ -9,8 +9,8 @@
     "build-system:build": "docker build -t ${IMAGE:-build-system:latest} build_system",
     "build-system:push": "docker push  ${IMAGE:-build-system:latest}",
     "build-system": "npm run build-system:build && npm run build-system:push",
-    "test": "node --stack-size=10000 ../../node_modules/.bin/jest",
-    "watch:test": "node --stack-size=10000 ../../node_modules/.bin/jest --watch ",
+    "test": "node  ../../node_modules/.bin/jest",
+    "watch:test": "node  ../../node_modules/.bin/jest --watch ",
     "bundle": "rollup -c rollup.config.js",
     "watch:bundle": "rollup -w -c rollup.config.js"
   },

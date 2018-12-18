@@ -1,5 +1,5 @@
 
-module T = Trans_ast
+module T = Gql_ast
 module S = Gql_ast
 
 exception Transform_error of string
@@ -90,26 +90,6 @@ let m_string_value (tv: T.string_value): S.string_value = match tv with
   | T.BlockStringValue v -> S.BlockStringValue v
 
 
-let rec tv_to_svc (v: T.value): S.vc = 
-  match v with
-  | T.StringValue s -> 
-    S.StringValue (m_string_value s)
-  | T.BooleanValue b -> 
-    S.BooleanValue b
-  | T.IntValue i -> 
-    S.IntValue i
-  | T.FloatValue f -> 
-    S.FloatValue f
-  | T.NullValue -> 
-    S.NullValue
-  | T.EnumValue v -> 
-    S.EnumValue v
-  | T.ListValue vs -> 
-    S.ListValue (List.map tv_to_svc vs)
-  | T.ObjectValue fs -> 
-    S.ObjectValue (List.map tof_to_sof fs)
-
-and tof_to_sof (f: T.object_field): S.vc S.object_field = {name = f.name; value = tv_to_svc f.value}
 let starts_with (sub: string) (prefix: string): bool = 
   if String.length sub < String.length prefix then
     false
@@ -130,7 +110,7 @@ module Schema : sig
     fixed_input_fields: ((S.name) * S.vc S.argument) list;
   }
 
-  val s: S.schema_document -> T.document -> (S.schema_document * res)
+  val s: S.schema_document -> T.trans_document -> (S.schema_document * res)
   exception Transformation_error of string
 
 end = struct
@@ -227,7 +207,7 @@ end = struct
 
   let check_message (e: string) (g: string): exn = (Transformation_error ("Expected locked value of type " ^ e ^ ", got " ^ g ^"."))
 
-  let v_to_name (v: T.value): string = match v with
+  let v_to_name (v: T.value_const): string = match v with
     | T.ListValue _ -> "list"
     | T.BooleanValue _ -> "boolean"
     | T.NullValue -> "null"
@@ -237,7 +217,7 @@ end = struct
     | T.EnumValue _ -> "enum-value"
     | T.ObjectValue _ -> "object"
 
-  let rec check_value (c: ctx) (t: S.tpe) (v: T.value): unit = 
+  let rec check_value (c: ctx) (t: S.tpe) (v: T.value_const): unit = 
     match t, v with
     | S.NonNullType _, T.NullValue -> raise (check_message "non-null" "null")
     | S.NonNullType (S.ListType t), v -> check_value c (S.ListType t) v
@@ -264,13 +244,13 @@ end = struct
           )
         | S.EnumTypeDefinition _, v -> raise (check_message "enum-value" (v_to_name v))
         | S.InputObjectTypeDefinition d, T.ObjectValue vs -> (
-            List.fold_left (fun _ (v: T.object_field) -> (
+            List.fold_left (fun _ (v: T.vc T.object_field) -> (
                   match Utils.find_opt (fun (d: S.input_value_definition) -> d.name = v.name) d.fields with
                   | Some f -> check_value c f.tpe v.value
                   | _ -> raise (Transformation_error ("Failed to find field " ^ v.name ^ " on " ^ n ^ "."))
                 )) () vs;
             List.fold_left (fun _ (f: S.input_value_definition) -> 
-                match f.tpe, Utils.find_opt (fun (v: T.object_field) -> v.name = f.name) vs with 
+                match f.tpe, Utils.find_opt (fun (v: T.vc T.object_field) -> v.name = f.name) vs with 
                 | S.NonNullType _, None -> raise (Transformation_error ("Required field " ^ f.name ^ " missing from object."))
                 | _ -> ()
               ) () d.fields
@@ -298,7 +278,7 @@ end = struct
          | Some {value = Some v; name} -> 
            check_value c d.tpe v;
            (
-             ds, upd1 {name = name; value = tv_to_svc v} r
+             ds, upd1 {name = name; value = v} r
            )
          | Some t -> (
              let d, r = s_input_value_definition c t (d, r) in
@@ -557,7 +537,7 @@ end = struct
      | Some t -> Some (m t)
      | None -> None
     )
-  let s (s: S.schema_document) (t: T.document): (S.schema_document * res) =
+  let s (s: S.schema_document) (t: T.trans_document): (S.schema_document * res) =
     let (schema, types) = 
       List.fold_right 
         (fun c (s, ts) -> 
@@ -1480,7 +1460,7 @@ end
 let (>-): S.schema_document -> (S.schema_document -> S.schema_document) -> S.schema_document = fun s -> fun m -> m s
 
 type transformation = {
-  t: T.document;
+  t: T.trans_document;
   os: S.schema_document;
   tr: Schema.res;
   ts: S.schema_document;

@@ -452,3 +452,86 @@ let document_to_schema_document (d: document): schema_document  =
     )
   | _ -> raise (Invalid_document "Failed to create schema document.")
 
+(* TRANSFORMATION DOCUMENT *)
+
+
+type selector = {
+  name: name;
+  alias: name option;
+}
+
+type type_selector = selector
+
+type field_selector = selector
+
+type input_value_selector = selector
+
+type enum_value_selector = selector
+
+type input_value = {
+  description: description option;
+  name: string;
+  value: value_const option;
+}
+
+type field_transformation = {
+  description: description option;
+  selector: field_selector;
+  arguments: input_value list
+}
+
+type object_type_transformation = {
+  description: description option;
+  selector: type_selector;
+  fields: field_transformation list;
+}
+
+type scalar_type_transformation = {
+  description: description option;
+  selector: type_selector;
+}
+
+type union_type_transformation = {
+  description: description option;
+  selector: type_selector;
+}
+
+type interface_type_transformation = {
+  description: description option;
+  selector: type_selector;
+  fields: field_transformation list;
+}
+
+type enum_value_transformation = {
+  description: description option;
+  value: enum_value ;
+}
+
+type enum_type_transformation = {
+  description: description option;
+  selector: type_selector;
+  values: enum_value_transformation list;
+}
+
+type input_object_type_transformation = {
+  description: description option;
+  selector: type_selector;
+  fields: input_value list;
+}
+
+type type_transformation =
+  | ScalarTypeTransformation of scalar_type_transformation
+  | ObjectTypeTransformation of object_type_transformation
+  | InterfaceTypeTransformation of interface_type_transformation
+  | UnionTypeTransformation of union_type_transformation
+  | EnumTypeTransformation of enum_type_transformation
+  | InputObjectTypeTransformation of input_object_type_transformation
+
+
+type schema_transformation = operation_type list
+
+type transformation =
+  | TypeTransformation of type_transformation
+  | SchemaTransformation of schema_transformation
+
+type trans_document = {transformations: transformation list}

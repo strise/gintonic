@@ -2,7 +2,7 @@
 
 type t
 
-val transform: Gql_ast.schema_document -> Trans_ast.document -> t
+val transform: Gql_ast.schema_document -> Gql_ast.trans_document -> t
 
 val schema: t -> Gql_ast.schema_document
 

@@ -1,9 +1,13 @@
 type graphql_schema
 
-val transformSchema: string -> string -> Transform.t
+type t
 
-val buildSchema: Transform.t -> graphql_schema
+val transformSchema: string -> string -> t
 
-val originalSchema: Transform.t -> graphql_schema
+val transformSchemaWithVariables: string -> string -> Js.Json.t -> t
 
-val transformQuery: Transform.t -> Js.Json.t -> Js.Json.t
+val buildSchema: t -> graphql_schema
+
+val originalSchema: t -> graphql_schema
+
+val transformQuery: t -> Js.Json.t -> Js.Json.t

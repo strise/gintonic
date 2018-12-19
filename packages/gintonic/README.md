@@ -60,7 +60,24 @@ transformation : type_transformation
 ### Schema transformation
 
 ```
-schema_transformation : "transform" "schema" "{" operation_type+ "}"
+schema_transformation : "transform" "schema" variable_definitions schema_transformation_operations?
+                      | "transform" "schema" schema_transformation_operations
+```
+
+```
+schema_transformation_operations : "{" operation_type+ "}"
+```
+
+```
+variable_definitions : "(" variable_definitions+ ")"
+```
+
+```
+variable_definition : variable ":" type default_value_const?
+```
+
+```
+variable : "$" name
 ```
 
 ### Operation type definition
@@ -200,6 +217,9 @@ input_value : description? name default_value?
 ```
 default_value : "=" value
 ```
+```
+default_value_const : "=" value_const
+```
 
 
 ### Description
@@ -231,6 +251,20 @@ value : int_value
       | enum_value
       | list_value
       | object_value
+      | variable
+```
+### Value const
+
+```
+value_const
+      : int_value
+      | float_value
+      | string_value
+      | boolean_value
+      | null_value
+      | enum_value
+      | list_value_const
+      | object_value_const
 ```
 
 #### Int value
@@ -343,6 +377,11 @@ list_value : "[" value* "]"
 ```
 
 
+```
+list_value_const : "[" value_const* "]"
+```
+
+
 
 #### Object values
 
@@ -353,4 +392,12 @@ object_value : "{" object_field* "}"
 
 ```
 object_field : name ":" value
+```
+
+```
+object_value_const : "{" object_field_const* "}"
+```
+
+```
+object_field_const : name ":" value_const
 ```

@@ -9,4 +9,7 @@ val executable_document_to_js: Gql_ast.executable_document -> Js.Json.t
 
 val print: Js.Json.t -> unit
 
+
+val js_to_vars: Js.Json.t -> (Gql_ast.variable * Gql_ast.vc) list
+
 exception Parse_error of string

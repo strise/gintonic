@@ -640,15 +640,12 @@ and tpe: G.tpe lexf =
 
 
 
-
-
-
-let default_value_opt: G.vc option lexf =  
-  fun tok lexer buf -> 
+let default_value_opt: 'a lexf -> 'a option lexf =  
+  fun v tok lexer buf -> 
     match tok with
     | EQUAL ->
       let tok = lexer buf in
-      let (tok, v) = value_const tok lexer buf in
+      let (tok, v) = v tok lexer buf in
       (tok, Some v)
     | _ -> (tok, None)
 
@@ -657,7 +654,7 @@ let variable_definition: G.variable_definition lexf =
     let (tok, v) = variable tok lexer buf in
     let tok = colon tok lexer buf in
     let (tok, tpe) = tpe tok lexer buf in
-    let (tok, df) = default_value_opt tok lexer buf in
+    let (tok, df) = default_value_opt value_const tok lexer buf in
     (tok, {variable = v; tpe = tpe; defaultValue = df})
 
 
@@ -671,18 +668,20 @@ let rec variable_definitions_inner: G.variable_definition list lexf =
         (tok, d::ds)
       )
 
-let variable_definitions_opt: token -> lexer -> Lexing.lexbuf -> (token * G.variable_definition list) = 
+let variable_definitions: token -> lexer -> Lexing.lexbuf -> (token * G.variable_definition list) = 
   fun tok lexer buf ->
-    match tok with
-    | L_PAREN -> (
-        let tok = l_paren tok lexer buf in
-        let (tok, d) = variable_definition tok lexer buf in
-        let (tok, ds) = variable_definitions_inner tok lexer buf in
-        let tok = r_paren tok lexer buf in
-        (tok, d::ds)
-      )
-    | _ -> (tok, [])
+    let tok = l_paren tok lexer buf in
+    let (tok, d) = variable_definition tok lexer buf in
+    let (tok, ds) = variable_definitions_inner tok lexer buf in
+    let tok = r_paren tok lexer buf in
+    (tok, d::ds)
 
+
+let variable_definitions_opt: token -> lexer -> Lexing.lexbuf -> (token * G.variable_definition list) = 
+  fun tok  ->
+    match tok with
+    | L_PAREN -> variable_definitions tok
+    | _ -> c_lexf [] tok
 
 
 
@@ -759,7 +758,7 @@ let input_value_definition: G.input_value_definition lexf =
     let (tok, n) = name tok lexer buf in
     let tok = colon tok lexer buf in
     let (tok, tpe) = tpe tok lexer buf in
-    let (tok, dfv) = default_value_opt tok lexer buf in
+    let (tok, dfv) = default_value_opt value_const tok lexer buf in
     let (tok, dirs) = directives_opt value_const tok lexer buf in
     (
       tok,
@@ -1455,7 +1454,7 @@ let input_value: G.input_value lexf =
   fun tok lexer buf ->
     let tok, desc = string_v_opt tok lexer buf in
     let tok, n = name tok lexer buf in
-    let tok, df = default_value_opt tok lexer buf in
+    let tok, df = default_value_opt value tok lexer buf in
     tok, {description = desc; name = n; value = df}
 
 let type_selector : G.type_selector lexf = 
@@ -1564,6 +1563,14 @@ let operation_type_transformation_definitions: G.operation_type list lexf =
     let tok = r_bracket tok lexer buf in
     tok, op::ops
 
+let operation_type_transformation_definitions_opt: G.operation_type list lexf =
+  fun tok  ->
+    match tok with
+    | L_BRACKET -> (
+        operation_type_transformation_definitions tok
+      )
+    | _ -> c_lexf [] tok
+
 
 let scalar_type_transformation: G.scalar_type_transformation lexf = 
   fun tok lexer buf ->
@@ -1663,8 +1670,17 @@ let type_transformation: G.string_value option -> G.type_transformation lexf =
 let schema_transformation: G.schema_transformation lexf =
   fun tok lexer buf ->
     let tok = schema tok lexer buf in
-    let tok, ops = operation_type_transformation_definitions tok lexer buf in
-    tok, ops
+    match tok with
+    | L_PAREN -> (
+        let tok, vars = variable_definitions tok lexer buf in
+        let tok, ops = operation_type_transformation_definitions_opt tok lexer buf in
+        tok, {operations = ops; variables = vars}
+      )
+    | _ ->  (
+        let tok, ops = operation_type_transformation_definitions tok lexer buf in
+        tok, {operations = ops; variables = []}
+
+      )
 
 
 let type_or_schema_transformation: G.transformation lexf = 

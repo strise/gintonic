@@ -26,19 +26,126 @@ let testProgramsShouldSuccede n p t: unit =
     fun () -> let _ = (Js_utils.schema_document_to_js (Transform.schema (Transform.transform (parseSS p) (parseTS t)))) in  pass
   )
 
-external readFileSync: name: string -> (_ [@bs.as "utf8"]) -> string = "readFileSync" [@@bs.module "fs"]
 
 let () =
   describe "Transform" (fun () -> 
       describe "schema" (fun () -> 
           testProgramsShouldSuccede
             "large schema"
-            (readFileSync ~name:"./__tests__/resources/schema.graphql")
-            (readFileSync ~name:"./__tests__/resources/transformation.graphqlt");
+            (Helpers.readFileSync ~name:"./__tests__/resources/schema.graphql")
+            (Helpers.readFileSync ~name:"./__tests__/resources/transformation.graphqlt");
           testProgramsShouldSuccede
             "public schema"
-            (readFileSync ~name:"./__tests__/resources/public.graphql")
+            (Helpers.readFileSync ~name:"./__tests__/resources/public.graphql")
             "transform type Query { companyById } transform type Company { id name }";
+
+          testPrograms
+            "schema variables"
+            "
+            type Q {
+              f: String
+            }
+            type M {
+              f: String
+            }
+            schema {
+              query: Q
+              mutation: M
+            }
+            "
+            "
+            transform schema($a: String)
+            "
+            "
+            type Q {
+              f: String
+            }
+            type M {
+              f: String
+            }
+            schema {
+              query: Q
+              mutation: M
+            }
+            ";
+
+          testPrograms
+            "schema variables used"
+            "
+            type Q {
+              f(arg: String): String
+            }
+            schema {
+              query: Q
+            }
+            "
+            "
+            transform type Q {
+              f(arg=$a)
+            }
+            transform schema($a: String = \"foobar\")
+            "
+            "
+            type Q {
+              f: String
+            }
+            schema {
+              query: Q
+            }
+            ";
+          testPrograms
+            "schema variables stronger"
+            "
+            type Q {
+              f(arg: String): String
+            }
+            schema {
+              query: Q
+            }
+            "
+            "
+            transform type Q {
+              f(arg=$a)
+            }
+            transform schema($a: String! = \"foobar\")
+            "
+            "
+            type Q {
+              f: String
+            }
+            schema {
+              query: Q
+            }
+            ";
+
+          testPrograms
+            "schema variables and transformation"
+            "
+            type Q {
+              f: String
+            }
+            type M {
+              f: String
+            }
+            schema {
+              query: Q
+              mutation: M
+            }
+            "
+            "
+            transform schema($a: String) {
+              query
+            }
+            "
+            "
+            type Q {
+              f: String
+            }
+            schema {
+              query: Q
+            }
+            ";
+
           testPrograms
             "schema limit 1"
             "

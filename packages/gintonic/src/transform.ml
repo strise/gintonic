@@ -3,6 +3,7 @@ module T = Gql_ast
 module S = Gql_ast
 
 exception Transform_error of string
+exception Prime_error of string
 exception Query_transform_error of string
 
 let build_in_scalars = 
@@ -96,9 +97,121 @@ let starts_with (sub: string) (prefix: string): bool =
   else
     String.sub sub 0 (String.length prefix) = prefix
 
-module Schema : sig
+module CheckValue : sig
 
-  type res = {
+  val c: (S.name -> S.type_definition) -> (S.variable -> S.variable_definition) -> (S.tpe) -> (S.v) -> S.v
+  val cc: (S.name -> S.type_definition) -> (S.tpe) -> (S.vc) -> S.vc
+  exception Value_check_error of string
+
+end = struct
+  exception Value_check_error of string
+
+  let check_message (e: string) (g: string): exn = (Value_check_error ("Expected locked value of type " ^ e ^ ", got " ^ g ^"."))
+
+  type ctx = {
+    find_type: S.name -> S.type_definition;
+    find_variable: S.variable -> S.variable_definition
+  }
+
+  let v_to_name (v: T.value): string = match v with
+    | T.ListValue _ -> "list"
+    | T.BooleanValue _ -> "boolean"
+    | T.NullValue -> "null"
+    | T.IntValue _ -> "int"
+    | T.FloatValue _ -> "float"
+    | T.StringValue _ -> "string"
+    | T.EnumValue _ -> "enum-value"
+    | T.ObjectValue _ -> "object"
+    | T.Variable _ -> "variable"
+
+  let rec check_var_tpe (t1: S.tpe) (t2: S.tpe) (v: S.variable) (vaal: 'a): 'a  =
+    match t1, t2 with
+    | S.NamedType n1, S.NamedType n2
+    | S.NonNullType (S.NamedType n1), S.NonNullType (S.NamedType n2)
+    | S.NamedType n1, S.NonNullType (S.NamedType n2) -> if n1 == n2 then vaal else raise (Transform_error (Printf.sprintf "Type mismatch on variable %s. Variable type definition %s is not euqal to %s" v n1 n2))
+    | S.ListType t1, S.ListType t2
+    | S.ListType t1, S.NonNullType (S.ListType t2)
+    | S.NonNullType (S.ListType t1), S.NonNullType (S.ListType t2) -> check_var_tpe t1 t2 v vaal
+    | S.NonNullType _, S.ListType _ 
+    | S.NonNullType _, S.NamedType _ -> raise (Transform_error (Printf.sprintf "Type mismatch on variable %s. Variable of nullable type can not be assigned to null-type." v))
+    | S.ListType _, S.NamedType _
+    | S.ListType _, S.NonNullType S.NamedType _
+    | S.NonNullType S.ListType _, S.NonNullType S.NamedType _ -> raise (Transform_error (Printf.sprintf "Type mismatch on variable %s. Expected list got named-type." v))
+    | S.NamedType _, S.ListType _
+    | S.NamedType _, S.NonNullType S.ListType _
+    | S.NonNullType S.NamedType _, S.NonNullType S.ListType _-> raise (Transform_error (Printf.sprintf "Type mismatch on variable %s. Expected named-type got list." v))
+
+  let rec check_named_type (c: ctx) (n: S.named_type) (v: S.value): S.value = 
+    let t = c.find_type n in
+    match t, v with 
+    | S.EnumTypeDefinition d, T.StringValue (T.StringValue v)
+    | S.EnumTypeDefinition d, T.StringValue (T.BlockStringValue v)
+    | S.EnumTypeDefinition d, T.EnumValue v -> (
+        let existing_value = Utils.find_opt (fun (d: S.enum_value_definition) -> v = d.value) d.values in
+        match  existing_value with
+        | Some _ -> S.EnumValue v
+        |  _ -> raise (Value_check_error ("The enum value " ^ v ^ " is not found in the type " ^ n ^ "."))
+      )
+    | S.EnumTypeDefinition _, v -> raise (check_message "enum-value" (v_to_name v))
+    | S.InputObjectTypeDefinition d, T.ObjectValue vs -> (
+        List.fold_left (fun _ (f: S.input_value_definition) -> (* Check for missing required fields *)
+            match f.tpe, Utils.find_opt (fun (v: T.v T.object_field) -> v.name = f.name) vs with 
+            | S.NonNullType _, None -> raise (Value_check_error ("Required field " ^ f.name ^ " missing from object."))
+            | _ -> ()
+          ) () d.fields;
+        S.ObjectValue (
+          List.map
+            (fun (v: S.v T.object_field) -> (
+                 match Utils.find_opt (fun (d: S.input_value_definition) -> d.name = v.name) d.fields with
+                 | Some f -> let f: S.v T.object_field = { value = check_value c f.tpe v.value; name = v.name } in f
+                 | _ -> raise (Value_check_error ("Failed to find field " ^ v.name ^ " on " ^ n ^ "."))
+               )) 
+            vs
+        )
+      )
+    | S.InputObjectTypeDefinition _, _ -> raise (check_message "object" (v_to_name v))
+    | S.ScalarTypeDefinition _, v -> v
+    | _ -> raise (Value_check_error "Invalid type")
+
+  and check_value (c: ctx) (t: S.tpe) (v: S.value): S.v = 
+    match t, v with
+    | _, T.Variable v -> check_var_tpe t  (c.find_variable v).tpe v (T.Variable v)
+    | S.NonNullType _, T.NullValue -> raise (check_message "non-null" "null")
+    | S.NonNullType (S.ListType t), v -> check_value c (S.ListType t) v
+    | S.NonNullType (S.NamedType n), v -> check_value c (S.NamedType n) v
+    | _, T.NullValue -> S.NullValue
+    | S.ListType t, T.ListValue vs -> S.ListValue (List.map (fun v -> check_value c t v) vs)
+    | S.ListType _, _ -> raise (check_message "list" (v_to_name v))
+    | S.NamedType "String", T.StringValue v -> S.StringValue v
+    | S.NamedType "String", _ -> raise (check_message "string" (v_to_name v))
+    | S.NamedType "Int", T.IntValue v -> S.IntValue v
+    | S.NamedType "Int", _ -> raise (check_message "int" (v_to_name v))
+    | S.NamedType "Float", T.FloatValue v -> S.FloatValue v
+    | S.NamedType "Float", _ -> raise (check_message "float" (v_to_name v))
+    | S.NamedType "Boolean", T.BooleanValue b -> S.BooleanValue b
+    | S.NamedType "Boolean", _ -> raise (check_message "boolean" (v_to_name v))
+    | S.NamedType "ID", T.IntValue i -> S.IntValue i
+    | S.NamedType "ID", T.StringValue s -> S.StringValue s
+    | S.NamedType "ID", _ -> raise (check_message "id" (v_to_name v))
+    | S.NamedType n, v -> check_named_type c n v
+
+  let c
+    = fun ft fd t v ->
+      check_value {find_type = ft; find_variable = fd} t v
+
+  let cc: (S.name -> S.type_definition) -> (S.tpe) -> (S.vc) -> S.vc
+    = fun f t v -> 
+      let v: S.v = S.vc_to_v  v in
+      let v : S.v = c f (fun _ -> raise Exit) t v in
+      S.v_to_vc (fun _ -> raise Exit) v
+
+end
+
+module Schema : sig
+  type 'v result = {
+    check_variable: S.variable -> S.vc -> S.vc;
+    variable_definitions: (S.variable * S.variable_definition) list;
+
     types: (S.name * S.type_definition) list;
     fields: ((S.name * S.name) * S.field_definition) list;
     input_fields: ((S.name * S.name) * S.input_value_definition) list;
@@ -106,16 +219,18 @@ module Schema : sig
     directive_arguments: ((S.name * S.name) * S.input_value_definition) list;
     new_fields: ((S.name * S.name) * S.field_definition) list;
 
-    fixed_arguments: ((S.name * S.name) * S.vc S.argument) list;
-    fixed_input_fields: ((S.name) * S.vc S.argument) list;
+    fixed_arguments: ((S.name * S.name) * 'v S.argument) list;
+    fixed_input_fields: ((S.name) * 'v S.argument) list;
   }
 
-  val s: S.schema_document -> T.trans_document -> (S.schema_document * res)
+  val s: S.schema_document -> T.trans_document -> (S.schema_document * S.v result)
   exception Transformation_error of string
 
 end = struct
+  type 'v result = {
+    check_variable: S.variable -> S.vc -> S.vc;
+    variable_definitions: (S.variable * S.variable_definition) list;
 
-  type res = {
     types: (S.name * S.type_definition) list;
     fields: ((S.name * S.name) * S.field_definition) list;
     input_fields: ((S.name * S.name) * S.input_value_definition) list;
@@ -123,13 +238,16 @@ end = struct
     directive_arguments: ((S.name * S.name) * S.input_value_definition) list;
     new_fields: ((S.name * S.name) * S.field_definition) list;
 
-    fixed_arguments: ((S.name * S.name) * S.vc S.argument) list;
-    fixed_input_fields: ((S.name) * S.vc S.argument) list;
+    fixed_arguments: ((S.name * S.name) * 'v S.argument) list;
+    fixed_input_fields: ((S.name) * 'v S.argument) list;
   }
+
+  type res = S.v result
 
   exception Transformation_error of string
 
   type ctx = {
+    find_variable: S.variable -> S.variable_definition;
     find_type_alias: S.name -> S.name option;
     find_type_transformation: S.name -> T.type_transformation option;
     schema_transformation: T.schema_transformation option;
@@ -174,18 +292,22 @@ end = struct
 
 
   let s_schema_definition (c: ctx) ((s, r): S.schema_definition * res): (S.schema_definition * res) = 
+
+    let empty_ops r = 
+      List.fold_right
+        (listify (s_operation_type_definition c))
+        s.operations
+        ([], r)
+    in
     match (s, c.schema_transformation) with
-    | (p1, None) -> 
-      let ops, r = 
-        List.fold_right
-          (listify (s_operation_type_definition c))
-          p1.operations
-          ([], r)
-      in
+    | (p1, None)
+    | (p1, Some{operations = []; variables = _}) -> 
+      let ops, r = empty_ops r in
       {
         p1 with
         operations = ops
-      }, r
+      }, 
+      r
     | (p1, Some p2) -> 
       let ops = List.map (fun (o: S.operation_type_definition) -> (o.operation, o)) p1.operations in
       let ops, r = 
@@ -197,67 +319,14 @@ end = struct
                (op::opps, res)
              | None -> raise (Transformation_error ("Operation \"" ^ (S.operation_type_to_string (m_operation_type t)) ^ "\" not found on schema."))
           )
-          p2
+          p2.operations
           ([], r)
       in
       {
         p1 with 
         operations = ops
-      }, r
-
-  let check_message (e: string) (g: string): exn = (Transformation_error ("Expected locked value of type " ^ e ^ ", got " ^ g ^"."))
-
-  let v_to_name (v: T.value_const): string = match v with
-    | T.ListValue _ -> "list"
-    | T.BooleanValue _ -> "boolean"
-    | T.NullValue -> "null"
-    | T.IntValue _ -> "int"
-    | T.FloatValue _ -> "float"
-    | T.StringValue _ -> "string"
-    | T.EnumValue _ -> "enum-value"
-    | T.ObjectValue _ -> "object"
-
-  let rec check_value (c: ctx) (t: S.tpe) (v: T.value_const): unit = 
-    match t, v with
-    | S.NonNullType _, T.NullValue -> raise (check_message "non-null" "null")
-    | S.NonNullType (S.ListType t), v -> check_value c (S.ListType t) v
-    | S.NonNullType (S.NamedType n), v -> check_value c (S.NamedType n) v
-    | _, T.NullValue -> ()
-    | S.ListType t, T.ListValue vs -> List.fold_left (fun _ v -> check_value c t v) () vs
-    | S.ListType _, _ -> raise (check_message "list" (v_to_name v))
-    | S.NamedType "String", T.StringValue _ -> ()
-    | S.NamedType "String", _ -> raise (check_message "string" (v_to_name v))
-    | S.NamedType "Int", T.IntValue _ -> ()
-    | S.NamedType "Int", _ -> raise (check_message "int" (v_to_name v))
-    | S.NamedType "Float", T.FloatValue _ -> ()
-    | S.NamedType "Float", _ -> raise (check_message "float" (v_to_name v))
-    | S.NamedType "Boolean", T.BooleanValue _ -> ()
-    | S.NamedType "Boolean", _ -> raise (check_message "boolean" (v_to_name v))
-    | S.NamedType "ID", T.IntValue _ -> ()
-    | S.NamedType "ID", T.StringValue _ -> ()
-    | S.NamedType "ID", _ -> raise (check_message "id" (v_to_name v))
-    | S.NamedType n, v -> (
-        let t = c.find_type n in
-        match t, v with 
-        | S.EnumTypeDefinition d, T.EnumValue v -> (
-            match Utils.find_opt (fun (d: S.enum_value_definition) -> v = d.value) d.values with | Some _ -> () |  _ -> raise (Transformation_error ("The enum value " ^ v ^ " is not found in the type " ^ n ^ "."))
-          )
-        | S.EnumTypeDefinition _, v -> raise (check_message "enum-value" (v_to_name v))
-        | S.InputObjectTypeDefinition d, T.ObjectValue vs -> (
-            List.fold_left (fun _ (v: T.vc T.object_field) -> (
-                  match Utils.find_opt (fun (d: S.input_value_definition) -> d.name = v.name) d.fields with
-                  | Some f -> check_value c f.tpe v.value
-                  | _ -> raise (Transformation_error ("Failed to find field " ^ v.name ^ " on " ^ n ^ "."))
-                )) () vs;
-            List.fold_left (fun _ (f: S.input_value_definition) -> 
-                match f.tpe, Utils.find_opt (fun (v: T.vc T.object_field) -> v.name = f.name) vs with 
-                | S.NonNullType _, None -> raise (Transformation_error ("Required field " ^ f.name ^ " missing from object."))
-                | _ -> ()
-              ) () d.fields
-          )
-        | S.InputObjectTypeDefinition _, _ -> raise (check_message "object" (v_to_name v))
-        | _ -> ()
-      )
+      }, 
+      r
 
   let s_input_value_definition (c: ctx) (t: T.input_value) ((d, r): S.input_value_definition * res): S.input_value_definition * res = 
     let 
@@ -268,7 +337,7 @@ end = struct
     let t, r = s_tpe c (desced.tpe, r) in
     {desced with tpe = t }, r
 
-  let s_input_values_definition (c: ctx) (upd1: S.vc S.argument -> res -> res) (upd2: S.input_value_definition -> res -> res) (ts: T.input_value list) ((ds, r): S.input_value_definition list * res): S.input_value_definition list * res = 
+  let s_input_values_definition (c: ctx) (upd1: S.v S.argument -> res -> res) (upd2: S.input_value_definition -> res -> res) (ts: T.input_value list) ((ds, r): S.input_value_definition list * res): S.input_value_definition list * res = 
     let 
       args = List.map (fun (v: T.input_value) -> (v.name, v)) ts
     in
@@ -276,9 +345,9 @@ end = struct
       (fun (d: S.input_value_definition) (ds, r) -> 
          match Utils.assoc_opt d.name args with
          | Some {value = Some v; name} -> 
-           check_value c d.tpe v;
            (
-             ds, upd1 {name = name; value = v} r
+             let transformed_value = CheckValue.c c.find_type c.find_variable d.tpe v in
+             ds, upd1 {name = name; value = transformed_value} r
            )
          | Some t -> (
              let d, r = s_input_value_definition c t (d, r) in
@@ -550,8 +619,20 @@ end = struct
     in
     let original_types = List.map (fun d -> td_to_name d, d) s.types in
     let err = Transformation_error "Transformation type mismatch" in
+    let vars =
+      match schema with 
+      | Some {variables = vs} -> List.map (fun (v: S.variable_definition) -> (v.variable, v)) vs
+      | _ -> []
+    in
+    let find_variable name = 
+      match Utils.assoc_opt name vars with
+      | Some v -> v
+      | None -> raise (Transformation_error ("Missing variable definition for variable $" ^ name))
+    in
+
     let ctx = 
       {
+        find_variable = find_variable;
         find_type = 
           (fun n -> match Utils.assoc_opt n original_types with | Some t -> t | None -> raise (Transformation_error ("Type " ^ n ^ " not found.")));
         find_interface_type_transformation = 
@@ -616,6 +697,8 @@ end = struct
 
     let 
       r = {
+      check_variable = (fun vr -> CheckValue.cc ctx.find_type (ctx.find_variable vr).tpe);
+      variable_definitions = vars;
       types = [];
       fields = [];
       input_fields = [];
@@ -1459,23 +1542,26 @@ end
 
 let (>-): S.schema_document -> (S.schema_document -> S.schema_document) -> S.schema_document = fun s -> fun m -> m s
 
-type transformation = {
+type 'v trans = {
   t: T.trans_document;
   os: S.schema_document;
-  tr: Schema.res;
+  tr: 'v Schema.result;
   ts: S.schema_document;
 }
 
-type t = transformation
+type transformation = S.v trans
+type primed_transformation = S.vc trans
 
-let schema (t: transformation) : S.schema_document =  t.ts
+let schema (t: 'a trans) : S.schema_document =  t.ts
+let schema_p = schema
 
-let original_schema (t: transformation): S.schema_document = t.os
+let original_schema (t: 'a trans): S.schema_document = t.os
+let original_schema_p = original_schema
 
 let transform s t: transformation = (
   try 
     let 
-      (schema, r) = Schema.s s t 
+      (schema, r) = Schema.s s t
     in
     let ts =  schema >- Correct.c >- ShakeIt.c >- TypeCheck.c in
     {
@@ -1488,11 +1574,35 @@ let transform s t: transformation = (
   | Schema.Transformation_error e -> raise (Transform_error ("Transformation error: " ^ e))
   | Correct.Correction_error e -> raise (Transform_error ("Correction error: " ^ e))
   | TypeCheck.TypeError e -> raise (Transform_error ("Type error: " ^ e))
+  | CheckValue.Value_check_error e -> raise (Transform_error ("Check value error: " ^ e))
 )
 
 
+let mapper (vars: (S.variable -> S.vc)) ((k, v): ('a * S.v S.argument)) : ('a * S.vc S.argument) = (k, {v with value = S.v_to_vc vars v.value})
+
+let prime: transformation -> (S.variable * S.vc) list -> primed_transformation = 
+  fun t vars ->
+    try 
+      let fetcher n = t.tr.check_variable n (match Utils.assoc_opt n vars, Utils.assoc_opt n t.tr.variable_definitions with Some v, _ -> v | None, Some {defaultValue = Some v} -> v | _ -> S.NullValue) in
+      let
+        fixed_arguments = List.map (mapper fetcher) t.tr.fixed_arguments
+      in
+      let
+        fixed_input_fields: (S.name * S.vc S.argument) list = List.map (mapper fetcher) t.tr.fixed_input_fields
+      in
+      {
+        t with
+        tr = {
+          t.tr with
+          fixed_arguments = fixed_arguments;
+          fixed_input_fields = fixed_input_fields;
+        };
+      }
+    with
+    | CheckValue.Value_check_error m -> raise (Prime_error (Printf.sprintf "Prime error: %s" m))
+
 module Exec: sig
-  val c: transformation -> S.executable_document -> S.executable_document
+  val c: primed_transformation -> S.executable_document -> S.executable_document
   exception Transformation_error of string
 end = struct
   exception Transformation_error of string
@@ -1621,7 +1731,7 @@ end = struct
   let t_fragments (c: ctx) (fs: S.fragment_definition list): S.fragment_definition list = 
     List.map (t_fragment_internal c) fs
 
-  let c (t: transformation) (e: S.executable_document): S.executable_document  = 
+  let c (t: primed_transformation) (e: S.executable_document): S.executable_document  = 
     let c = {
       find_type = 
         (fun n -> 

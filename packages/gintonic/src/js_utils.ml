@@ -979,3 +979,31 @@ let js_to_executable_document:  Js.Json.t -> S.executable_document =
 external str : Js.Json.t -> string = "stringify" [@@bs.scope "JSON"][@@bs.val]
 
 let print t = Js.log (str t)
+
+
+let int_decoder: Gql_ast.vc Json.Decode.decoder = 
+  Json.Decode.(map (fun i -> let v: S.vc = S.IntValue (Int32.of_int i) in v) int)
+
+let float_decoder: Js.Json.t -> Gql_ast.vc = 
+  Json.Decode.map (fun i -> let v: S.vc = S.FloatValue (string_of_float i) in v) Json.Decode.float
+
+let boolean_decoder: Js.Json.t -> Gql_ast.vc = 
+  Json.Decode.map (fun i -> let v: S.vc = S.BooleanValue i in v) Json.Decode.bool
+
+let string_decoder: Js.Json.t -> Gql_ast.vc = 
+  Json.Decode.map (fun i -> let v: S.vc = S.StringValue (S.StringValue i) in v) Json.Decode.string
+
+let rec list_decoder (json : Js.Json.t) : Gql_ast.vc = 
+  Json.Decode.map (fun i -> let v: S.vc = S.ListValue (Array.to_list i) in v) (Json.Decode.array value_decoder) json
+
+and obj_decoder (json : Js.Json.t): Gql_ast.vc = 
+  Json.Decode.map (fun i -> let v: S.vc = S.ObjectValue (List.map (fun (k, v) -> let f: S.vc S.object_field = {name = k; value = v} in f) (Array.to_list (Js.Dict.entries (i)))) in v) (Json.Decode.dict value_decoder) json
+
+and v (json: Js.Json.t) = Json.Decode.oneOf (int_decoder::float_decoder::boolean_decoder::string_decoder::list_decoder::obj_decoder::[]) json
+
+and value_decoder (json: Js.Json.t): Gql_ast.vc = (Json.Decode.map (fun v -> match v with Some v -> v | None -> let v : S.vc = S.NullValue in v) (Json.Decode.optional v  )) json
+
+let js_to_vars: Js.Json.t -> (Gql_ast.variable * Gql_ast.vc) list =
+  Json.Decode.(
+    withDefault [] (fun t -> Array.to_list (Js.Dict.entries ((dict value_decoder) t)))
+  )

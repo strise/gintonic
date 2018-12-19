@@ -57,6 +57,21 @@ let rec vc_to_v (v: vc): v =
   | ListValue ls -> ListValue (List.map vc_to_v ls)
   | ObjectValue fs -> ObjectValue (List.map (fun f -> {name = f.name; value = vc_to_v f.value})fs)
 
+let rec v_to_vc (f: variable -> vc) (v: v): vc = 
+  match v with
+  | Variable v -> f v
+  | IntValue v -> IntValue v
+  | FloatValue f -> FloatValue f
+  | StringValue s -> StringValue s
+  | BooleanValue b -> BooleanValue b
+  | NullValue -> NullValue
+  | EnumValue e -> EnumValue e
+  | ListValue ls -> ListValue (List.map (v_to_vc f) ls)
+  | ObjectValue fs -> ObjectValue (List.map (fun field -> {name = field.name; value = (v_to_vc f) field.value})fs)
+
+
+(* ObjectValue (List.map (fun f -> {name = f.name; value = v_to_vc f.value})fs) *)
+
 type list_type = tpe
 
 and tpe = 
@@ -471,7 +486,7 @@ type enum_value_selector = selector
 type input_value = {
   description: description option;
   name: string;
-  value: value_const option;
+  value: value option;
 }
 
 type field_transformation = {
@@ -528,7 +543,7 @@ type type_transformation =
   | InputObjectTypeTransformation of input_object_type_transformation
 
 
-type schema_transformation = operation_type list
+type schema_transformation = {operations:  operation_type list; variables: variable_definition list}
 
 type transformation =
   | TypeTransformation of type_transformation

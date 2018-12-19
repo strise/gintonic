@@ -37,13 +37,13 @@ let () =
       describe "SchemaTransform" (fun () -> 
           testProgram 
             "transform schema { query }"
-            (ts (Query::[]));
+            (ts ({operations = Query::[]; variables = []}));
           testProgram 
             "transform schema { query mutation }"
-            (ts (Query::Mutation::[]));
+            (ts ({operations = Query::Mutation::[]; variables = []}));
           testProgram 
             "transform schema { query mutation subscription}"
-            (ts (Query::Mutation::Subscription::[]));
+            (ts ({operations = Query::Mutation::Subscription::[]; variables = []}));
         );
       describe "TypeTransformation" (fun () -> 
           describe "ScalarTypeTransformation" (fun () -> 

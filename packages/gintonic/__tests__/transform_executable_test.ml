@@ -37,7 +37,14 @@ let parse_trans_string(s: string) = parse_trans (Lexing.from_string s)
 let testPrograms n (schema: string) (t: string) (p1: string) (p2: string): unit =
   test n (
     fun () -> expect (Js_utils.executable_document_to_js (
-        Transform.executable (Transform.transform (parse_schema_string schema) (parse_trans_string t)) (parse_executable_string p1)))
+        Transform.executable (Transform.prime (Transform.transform (parse_schema_string schema) (parse_trans_string t)) []) (parse_executable_string p1)))
+              |> toEqual (Js_utils.executable_document_to_js (parse_executable_string p2))
+  )
+
+let testProgramsVars n (schema: string) (t: string) vars (p1: string) (p2: string): unit =
+  test n (
+    fun () -> expect (Js_utils.executable_document_to_js (
+        Transform.executable (Transform.prime (Transform.transform (parse_schema_string schema) (parse_trans_string t)) vars) (parse_executable_string p1)))
               |> toEqual (Js_utils.executable_document_to_js (parse_executable_string p2))
   )
 
@@ -106,6 +113,134 @@ let () =
             "
             query {
               f1: field
+            }
+
+            ";
+          testPrograms
+            "variables"
+            "
+            type Query {
+              field(arg: String): String
+            }
+            "
+            "
+            transform type Query {
+              field(arg = $a)
+            }
+            transform schema ($a: String = \"foobar\")
+            "
+            "
+            query {
+              field
+            }
+            "
+            "
+            query {
+              field (arg: \"foobar\")
+            }
+
+            ";
+          testProgramsVars
+            "variables vars"
+            "
+            type Query {
+              field(arg: String): String
+            }
+            "
+            "
+            transform type Query {
+              field(arg = $a)
+            }
+            transform schema ($a: String)
+            "
+            (("a", Gql_ast.StringValue (Gql_ast.StringValue "foobar"))::[])
+            "
+            query {
+              field
+            }
+            "
+            "
+            query {
+              field (arg: \"foobar\")
+            }
+
+            ";
+          testProgramsVars
+            "variables vars null"
+            "
+            type Query {
+              field(arg: String): String
+            }
+            "
+            "
+            transform type Query {
+              field(arg = $a)
+            }
+            transform schema ($a: String)
+            "
+            (("b", Gql_ast.StringValue (Gql_ast.StringValue "foobar"))::[])
+            "
+            query {
+              field
+            }
+            "
+            "
+            query {
+              field (arg: null)
+            }
+
+            ";
+          testProgramsVars
+            "variables vars enum"
+            "
+            enum Enum { EV1 }
+            type Query {
+              field(arg: Enum): String
+            }
+            "
+            "
+            transform type Query {
+              field(arg = $a)
+            }
+            transform schema ($a: Enum)
+            "
+            (("a", Gql_ast.StringValue (Gql_ast.StringValue "EV1"))::[])
+            "
+            query {
+              field
+            }
+            "
+            "
+            query {
+              field (arg: EV1)
+            }
+
+            ";
+
+          testPrograms
+            "variables enum"
+            "
+            enum Enum {
+              EV
+            }
+            type Query {
+              field(arg: Enum) : String
+            }
+            "
+            "
+            transform type Query {
+              field(arg = $a)
+            }
+            transform schema ($a : Enum = \"EV\")
+            "
+            "
+            query {
+              field
+            }
+            "
+            "
+            query {
+              field (arg: EV)
             }
 
             ";

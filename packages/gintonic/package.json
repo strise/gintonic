@@ -30,6 +30,11 @@
     "rollup-plugin-commonjs": "^9.2.0",
     "rollup-plugin-node-resolve": "^3.4.0"
   },
+  "jest": {
+    "testMatch": [
+      "**/__tests__/**/*_test.bs.js"
+    ]
+  },
   "peerDependencies": {
     "graphql": "^14.0.2"
   },

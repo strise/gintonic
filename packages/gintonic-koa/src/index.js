@@ -1,23 +1,23 @@
-const {transformQuery, transformSchema, buildSchema} = require('@mitoai/gintonic')
-const {print, Source, execute, parse, validate, printSchema, buildClientSchema, introspectionQuery} = require('graphql')
-const {getGraphQLParams} = require('express-graphql')
+const { transformQuery, transformSchemaWithVariables, buildSchema } = require('@mitoai/gintonic')
+const { print, Source, execute, parse, validate, printSchema, buildClientSchema, introspectionQuery } = require('graphql')
+const { getGraphQLParams } = require('express-graphql')
 const fetch = require('node-fetch')
 const httpError = require('http-errors')
 
-async function fetchFromUpstream ({transformation, query, variables, fetcher, operationName}) {
+async function fetchFromUpstream({ transformation, query, variables, fetcher, operationName }) {
   try {
     const newQueryAst = transformQuery(transformation, query)
-    return await fetcher({query: print(newQueryAst), variables, operationName})
+    return await fetcher({ query: print(newQueryAst), variables, operationName })
   } catch (err) {
-    return {errors: [err]}
+    return { errors: [err] }
   }
 }
 
-function pathBuilder ({prev, key}) {
+function pathBuilder({ prev, key }) {
   return `${prev ? pathBuilder(prev) : ''}.${key}`
 }
 
-async function exec ({transformation, schema, query, variables, operationName, fetcher}) {
+async function exec({ transformation, schema, query, variables, operationName, fetcher }) {
   if (!query) {
     throw httpError(400, 'Must provide query string.')
   }
@@ -26,11 +26,11 @@ async function exec ({transformation, schema, query, variables, operationName, f
   try {
     documentAst = parse(source)
   } catch (err) {
-    return {errors: [err]}
+    return { errors: [err] }
   }
   const ves = validate(schema, documentAst)
   if (ves.length) {
-    return {errors: ves}
+    return { errors: ves }
   }
   const upstreamResult = await fetchFromUpstream({
     transformation,
@@ -40,12 +40,12 @@ async function exec ({transformation, schema, query, variables, operationName, f
     operationName,
   })
   const [locatedErrors, unlocatedErrors] = (upstreamResult.errors || [])
-    .reduce(([accL, accUnL], {message, path}) => {
+    .reduce(([accL, accUnL], { message, path }) => {
       if (!path) {
-        return [accL, [...accUnL, {message}]]
+        return [accL, [...accUnL, { message }]]
       }
       const p = path.reduce((acc, p) => `${acc}.${p}`, '')
-      return [{...accL, [p]: message}, accUnL]
+      return [{ ...accL, [p]: message }, accUnL]
     }, [{}, []])
   const result = await execute(
     schema,
@@ -54,7 +54,7 @@ async function exec ({transformation, schema, query, variables, operationName, f
     null,
     variables,
     operationName,
-    (value, x1, x2, {path}) => {
+    (value, x1, x2, { path }) => {
       const err = locatedErrors[pathBuilder(path)]
       if (err) {
         throw new Error(err)
@@ -71,16 +71,16 @@ async function exec ({transformation, schema, query, variables, operationName, f
 
 }
 
-async function fetchSchema (fetcher) {
-  const {data, errors} = await fetcher({query: introspectionQuery})
+async function fetchSchema(fetcher) {
+  const { data, errors } = await fetcher({ query: introspectionQuery })
   if (errors) {
-    throw new Error(`Failed to fetch schema: ${errors.map(({message}) => message).join(', ')}`)
+    throw new Error(`Failed to fetch schema: ${errors.map(({ message }) => message).join(', ')}`)
   }
   return printSchema(buildClientSchema(data))
 }
 
-function defaultFetcher (url) {
-  return async ({query, operationName, variables}) =>
+function defaultFetcher(url) {
+  return async ({ query, operationName, variables }) =>
     await (
       await fetch(
         url,
@@ -97,7 +97,7 @@ function defaultFetcher (url) {
     ).json()
 }
 
-module.exports = function ({schema: ss, transformation: ts, fetcher: f, upstreamUrl: u}) {
+module.exports = function ({ schema: ss, transformation: ts, fetcher: f, upstreamUrl: u, variables: vars }) {
   if (!ss && !u && !f) {
     throw new Error('Failed to find schema, either provide schema as a string, an url for the upstream server, or a custom fetcher.')
   }
@@ -109,7 +109,7 @@ module.exports = function ({schema: ss, transformation: ts, fetcher: f, upstream
   }
   const fetcher = f || defaultFetcher(u)
   const schemaP = ss ? Promise.resolve(ss) : fetchSchema(fetcher, u)
-  const transformationP = schemaP.then(schema => transformSchema(schema, ts))
+  const transformationP = schemaP.then(schema => transformSchemaWithVariables(schema, ts, vars || {}))
   const targetSchemaP = transformationP.then(t => buildSchema(t))
   return async ctx => {
     const transformation = await transformationP
@@ -123,7 +123,7 @@ module.exports = function ({schema: ss, transformation: ts, fetcher: f, upstream
     }
 
     const result = await exec({
-      fetcher: (args) => fetcher({...args, ctx}),
+      fetcher: (args) => fetcher({ ...args, ctx }),
       transformation,
       schema: targetSchema,
       query,

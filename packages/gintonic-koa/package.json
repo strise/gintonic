@@ -17,14 +17,16 @@
   "dependencies": {
     "@mitoai/gintonic": "file:../gintonic",
     "express-graphql": "^0.7.1",
-    "http-errors": "^1.7.1",
-    "node-fetch": "^2.3.0"
+    "http-errors": "^1.7.1"
   },
   "peerDependencies": {
     "graphql": "^14.0.2"
   },
   "devDependencies": {
-    "graphql": "^14.0.2"
+    "graphql": "^14.0.2",
+    "koa": "^2.6.2",
+    "koa-router": "^7.4.0",
+    "node-fetch": "^2.3.0"
   },
   "publishConfig": {
     "access": "public"
